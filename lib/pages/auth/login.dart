@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
@@ -27,12 +28,17 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       await AuthService.signIn(_emailController.text, _passwordController.text);
-      // Navigation will be handled automatically by GoRouter redirect
+      // Navigate to dashboard after successful login
+      if (mounted) {
+        context.go('/admin/dashboard');
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Login failed: ${e.toString()}';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Login failed: ${e.toString()}';
+          _isLoading = false;
+        });
+      }
     }
   }
 

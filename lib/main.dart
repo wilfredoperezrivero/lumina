@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pages/auth/login.dart';
 import 'pages/admin/dashboard.dart';
-import 'pages/family/dashboard.dart';
-import 'pages/invitee/add_message.dart';
+import 'pages/admin/create_capsule.dart';
+import 'pages/admin/list_capsules.dart';
 import 'services/auth_service.dart';
 
 void main() async {
@@ -42,27 +42,26 @@ final _router = GoRouter(
       builder: (context, state) => AdminDashboardPage(),
     ),
     GoRoute(
-      path: '/family/dashboard',
-      builder: (context, state) => FamilyDashboardPage(),
+      path: '/admin/create_capsule',
+      builder: (context, state) => CreateCapsulePage(),
     ),
     GoRoute(
-      path: '/invitee/message',
-      builder: (context, state) => AddMessagePage(),
+      path: '/admin/list_capsules',
+      builder: (context, state) => ListCapsulesPage(),
     ),
   ],
   redirect: (context, state) {
     final user = AuthService.currentUser();
-    if (user == null && state.uri.path != '/login') {
+    final isLoginRoute = state.uri.path == '/login';
+
+    if (user == null && !isLoginRoute) {
       return '/login';
     }
-    if (user != null && state.uri.path == '/login') {
-      final role = AuthService.currentUserRole();
-      if (role == 'admin') return '/admin/dashboard';
-      if (role == 'family') return '/family/dashboard';
-      if (role == 'invitee') return '/invitee/message';
-      // Default fallback if role is not set
-      return '/family/dashboard';
+
+    if (user != null && isLoginRoute) {
+      return '/admin/dashboard';
     }
+
     return null;
   },
   refreshListenable: AuthService.authStateChanges(),

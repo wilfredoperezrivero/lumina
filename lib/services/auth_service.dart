@@ -11,17 +11,15 @@ class AuthService extends ChangeNotifier {
     );
   }
 
-  static Future<void> signUp(String email, String password, String role) async {
+  static Future<void> signUp(String email, String password) async {
     final res = await Supabase.instance.client.auth.signUp(
       email: email,
       password: password,
-      data: {'role': role},
     );
   }
 
-  static String? currentUserRole() {
-    final user = currentUser();
-    return user?.userMetadata?['role'];
+  static Future<void> signOut() async {
+    await Supabase.instance.client.auth.signOut();
   }
 
   static ChangeNotifier authStateChanges() {

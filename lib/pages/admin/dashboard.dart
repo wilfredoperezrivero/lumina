@@ -1,27 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../services/auth_service.dart';
 
 class AdminDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Admin Dashboard')),
+      appBar: AppBar(
+        title: Text('Admin Dashboard'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout),
+            onPressed: () async {
+              // Add logout functionality
+              await AuthService.signOut();
+              if (context.mounted) {
+                context.go('/login');
+              }
+            },
+          ),
+        ],
+      ),
       body: ListView(
         children: [
           ListTile(
             title: Text('Buy Packs'),
-            onTap: () => Navigator.pushNamed(context, '/admin/buy_packs'),
+            onTap: () => context.go('/admin/buy_packs'),
           ),
           ListTile(
             title: Text('Create Capsule'),
-            onTap: () => Navigator.pushNamed(context, '/admin/create_capsule'),
+            onTap: () => context.go('/admin/create_capsule'),
           ),
           ListTile(
             title: Text('List/Browse Capsules'),
-            onTap: () => Navigator.pushNamed(context, '/admin/list_capsules'),
+            onTap: () => context.go('/admin/list_capsules'),
           ),
           ListTile(
             title: Text('Send Capsule to Families'),
-            onTap: () => Navigator.pushNamed(context, '/admin/send_capsule'),
+            onTap: () => context.go('/admin/send_capsule'),
           ),
         ],
       ),

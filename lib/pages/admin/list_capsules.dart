@@ -1,0 +1,337 @@
+import 'package:flutter/material.dart';
+import '../../services/capsule_service.dart';
+import '../../models/capsule.dart';
+
+class ListCapsulesPage extends StatefulWidget {
+  @override
+  _ListCapsulesPageState createState() => _ListCapsulesPageState();
+}
+
+class _ListCapsulesPageState extends State<ListCapsulesPage> {
+  List<Capsule> _capsules = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCapsules();
+  }
+
+  Future<void> _loadCapsules() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final capsules = await CapsuleService.getUserCapsules();
+      setState(() {
+        _capsules = capsules;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load capsules: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('My Capsules'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: _loadCapsules,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      SizedBox(height: 16),
+                      Text(
+                        'Error',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        _errorMessage!,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadCapsules,
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : _capsules.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inbox_outlined,
+                              size: 64, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text(
+                            'No Capsules Yet',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Create your first capsule to get started',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pushNamed(
+                                context, '/admin/create_capsule'),
+                            child: Text('Create Capsule'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadCapsules,
+                      child: ListView.builder(
+                        padding: EdgeInsets.all(16),
+                        itemCount: _capsules.length,
+                        itemBuilder: (context, index) {
+                          final capsule = _capsules[index];
+                          return Card(
+                            margin: EdgeInsets.only(bottom: 16),
+                            child: ListTile(
+                              contentPadding: EdgeInsets.all(16),
+                              leading: CircleAvatar(
+                                backgroundColor:
+                                    _getStatusColor(capsule.status),
+                                child: Icon(
+                                  _getStatusIcon(capsule.status),
+                                  color: Colors.white,
+                                ),
+                              ),
+                              title: Text(
+                                capsule.name,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 4),
+                                  Text(
+                                    capsule.description,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.calendar_today, size: 16),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Created: ${_formatDate(capsule.createdAt)}',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                  if (capsule.scheduledDate != null) ...[
+                                    SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.schedule, size: 16),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Scheduled: ${_formatDate(capsule.scheduledDate!)}',
+                                          style: TextStyle(fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  SizedBox(height: 4),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(capsule.status)
+                                          .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      capsule.status.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: _getStatusColor(capsule.status),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              trailing: PopupMenuButton<String>(
+                                onSelected: (value) =>
+                                    _handleMenuAction(value, capsule),
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'view',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.visibility),
+                                        SizedBox(width: 8),
+                                        Text('View Details'),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit),
+                                        SizedBox(width: 8),
+                                        Text('Edit'),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'messages',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.message),
+                                        SizedBox(width: 8),
+                                        Text('View Messages'),
+                                      ],
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text('Delete',
+                                            style:
+                                                TextStyle(color: Colors.red)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'draft':
+        return Colors.grey;
+      case 'active':
+        return Colors.green;
+      case 'completed':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'draft':
+        return Icons.edit;
+      case 'active':
+        return Icons.play_arrow;
+      case 'completed':
+        return Icons.check;
+      default:
+        return Icons.help;
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _handleMenuAction(String action, Capsule capsule) {
+    switch (action) {
+      case 'view':
+        // TODO: Navigate to capsule details page
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('View details for ${capsule.name}')),
+        );
+        break;
+      case 'edit':
+        // TODO: Navigate to edit capsule page
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Edit ${capsule.name}')),
+        );
+        break;
+      case 'messages':
+        // TODO: Navigate to messages page
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('View messages for ${capsule.name}')),
+        );
+        break;
+      case 'delete':
+        _showDeleteDialog(capsule);
+        break;
+    }
+  }
+
+  void _showDeleteDialog(Capsule capsule) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Capsule'),
+        content: Text(
+            'Are you sure you want to delete "${capsule.name}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await CapsuleService.deleteCapsule(capsule.id);
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Capsule deleted successfully!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                _loadCapsules(); // Refresh the list
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete capsule: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+}

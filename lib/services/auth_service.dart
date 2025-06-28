@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
-class AuthService {
+class AuthService extends ChangeNotifier {
   static User? currentUser() => Supabase.instance.client.auth.currentUser;
 
   static Future<void> signIn(String email, String password) async {
@@ -21,5 +22,17 @@ class AuthService {
   static String? currentUserRole() {
     final user = currentUser();
     return user?.userMetadata?['role'];
+  }
+
+  static ChangeNotifier authStateChanges() {
+    return _AuthStateNotifier();
+  }
+}
+
+class _AuthStateNotifier extends ChangeNotifier {
+  _AuthStateNotifier() {
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      notifyListeners();
+    });
   }
 }

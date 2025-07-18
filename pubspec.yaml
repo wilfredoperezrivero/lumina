@@ -17,3 +17,6 @@ dependencies:
   video_player: ^2.8.2
   just_audio: ^0.9.36
   url_launcher: ^6.2.6
+
+flutter:
+  uses-material-design: true  

@@ -56,6 +56,12 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Image.asset(
+                'assets/logo.png',
+                height: 100,
+                fit: BoxFit.contain,
+              ),
+              SizedBox(height: 24),
               Text(
                 'Welcome to Lumina',
                 style: Theme.of(context).textTheme.headlineMedium,

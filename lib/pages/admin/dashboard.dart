@@ -52,40 +52,45 @@ class AdminDashboardPage extends StatelessWidget {
               ),
               SizedBox(height: 32),
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  children: [
-                    _buildActionCard(
-                      context,
-                      'Buy Packs',
-                      Icons.shopping_cart,
-                      Colors.green,
-                      () => context.go('/admin/buy_packs'),
-                    ),
-                    _buildActionCard(
-                      context,
-                      'Create Capsule',
-                      Icons.add_circle,
-                      Colors.blue,
-                      () => context.go('/admin/create_capsule'),
-                    ),
-                    _buildActionCard(
-                      context,
-                      'List Capsules',
-                      Icons.list,
-                      Colors.orange,
-                      () => context.go('/admin/list_capsules'),
-                    ),
-                    _buildActionCard(
-                      context,
-                      'Send to Families',
-                      Icons.family_restroom,
-                      Colors.purple,
-                      () => context.go('/admin/send_capsule'),
-                    ),
-                  ],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    int crossAxisCount = constraints.maxWidth < 800 ? 2 : 4;
+                    return GridView.count(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      children: [
+                        _buildActionCard(
+                          context,
+                          'Create Capsule',
+                          Icons.add_circle,
+                          Colors.blue,
+                          () => context.go('/admin/create_capsule'),
+                        ),
+                        _buildActionCard(
+                          context,
+                          'List Capsules',
+                          Icons.list,
+                          Colors.orange,
+                          () => context.go('/admin/list_capsules'),
+                        ),
+                        _buildActionCard(
+                          context,
+                          'Buy Packs',
+                          Icons.shopping_cart,
+                          Colors.green,
+                          () => context.go('/admin/buy_packs'),
+                        ),
+                        _buildActionCard(
+                          context,
+                          'Settings',
+                          Icons.settings,
+                          Colors.purple,
+                          () => context.go('/admin/settings'),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],

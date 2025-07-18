@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/auth_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -12,6 +13,7 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _gdprAccepted = false;
 
   Future<void> _login() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
@@ -89,6 +91,49 @@ class _LoginPageState extends State<LoginPage> {
                 onSubmitted: (_) => _login(),
               ),
               SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Checkbox(
+                    value: _gdprAccepted,
+                    onChanged: (value) {
+                      setState(() {
+                        _gdprAccepted = value ?? false;
+                      });
+                    },
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () async {
+                        final url = Uri.parse(
+                            'https://luminamemorials.com/en/privacy-policy');
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url,
+                              mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      child: RichText(
+                        text: TextSpan(
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          children: [
+                            TextSpan(text: 'I accept the '),
+                            TextSpan(
+                              text: 'Privacy Policy',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                            TextSpan(
+                                text: ' and consent to data processing (GDPR)'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
               if (_errorMessage != null)
                 Container(
                   padding: EdgeInsets.all(8),
@@ -106,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
+                  onPressed: (_isLoading || !_gdprAccepted) ? null : _login,
                   child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
                       : Text('Login'),

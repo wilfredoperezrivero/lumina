@@ -22,6 +22,18 @@ class AuthService extends ChangeNotifier {
     await Supabase.instance.client.auth.signOut();
   }
 
+  static Future<void> changePassword(String newPassword) async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+    await Supabase.instance.client.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+  }
+
+  static Future<void> sendPasswordResetEmail(String email) async {
+    await Supabase.instance.client.auth.resetPasswordForEmail(email);
+  }
+
   static ChangeNotifier authStateChanges() {
     return _AuthStateNotifier();
   }

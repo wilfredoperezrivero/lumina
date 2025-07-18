@@ -91,6 +91,71 @@ class _LoginPageState extends State<LoginPage> {
                 onSubmitted: (_) => _login(),
               ),
               SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () async {
+                    final emailController =
+                        TextEditingController(text: _emailController.text);
+                    String? error;
+                    await showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text('Reset Password'),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                                'Enter your email to receive a password reset link.'),
+                            SizedBox(height: 16),
+                            TextField(
+                              controller: emailController,
+                              decoration: InputDecoration(
+                                labelText: 'Email',
+                                border: OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            if (error != null) ...[
+                              SizedBox(height: 8),
+                              Text(error!, style: TextStyle(color: Colors.red)),
+                            ]
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () async {
+                              try {
+                                await AuthService.sendPasswordResetEmail(
+                                    emailController.text);
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content:
+                                            Text('Password reset email sent!')),
+                                  );
+                                }
+                              } catch (e) {
+                                error =
+                                    'Failed to send reset email: \\${e.toString()}';
+                                (context as Element).markNeedsBuild();
+                              }
+                            },
+                            child: Text('Send'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Text('Forgot Password?'),
+                ),
+              ),
+              SizedBox(height: 16),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

@@ -36,13 +36,13 @@ class CapsuleService {
     final user = AuthService.currentUser();
     if (user == null) throw Exception('User not authenticated');
 
-    final response = await _supabase
-        .from('capsules')
-        .select()
-        .eq('admin_id', user.id)
-        .order('created_at', ascending: false);
+    final response =
+        await _supabase.from('capsules').select().eq('admin_id', user.id);
 
-    return response.map((json) => Capsule.fromJson(json)).toList();
+    final List data = response as List;
+    return data
+        .map((json) => Capsule.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   // Update capsule
@@ -83,79 +83,13 @@ class CapsuleService {
     return Capsule.fromJson(response);
   }
 
-  // Delete capsule
   static Future<void> deleteCapsule(String capsuleId) async {
     final user = AuthService.currentUser();
     if (user == null) throw Exception('User not authenticated');
-
-    // Verify the capsule belongs to this user
-    final capsule = await _supabase
+    await _supabase
         .from('capsules')
-        .select()
+        .delete()
         .eq('id', capsuleId)
-        .eq('admin_id', user.id)
-        .single();
-
-    if (capsule == null) throw Exception('Capsule not found or access denied');
-
-    await _supabase.from('capsules').delete().eq('id', capsuleId);
-  }
-
-  // Get messages for a capsule
-  static Future<List<CapsuleMessage>> getCapsuleMessages(
-      String capsuleId) async {
-    final user = AuthService.currentUser();
-    if (user == null) throw Exception('User not authenticated');
-
-    // Verify access to capsule
-    final capsule = await _supabase
-        .from('capsules')
-        .select()
-        .eq('id', capsuleId)
-        .eq('admin_id', user.id)
-        .single();
-
-    if (capsule == null) throw Exception('Access denied');
-
-    final response = await _supabase
-        .from('capsule_messages')
-        .select()
-        .eq('capsule_id', capsuleId)
-        .order('created_at', ascending: false);
-
-    return response.map((json) => CapsuleMessage.fromJson(json)).toList();
-  }
-
-  // Submit message to capsule
-  static Future<CapsuleMessage> submitMessage({
-    required String capsuleId,
-    required String message,
-    String? mediaUrl,
-  }) async {
-    final user = AuthService.currentUser();
-    if (user == null) throw Exception('User not authenticated');
-
-    // Verify access to capsule
-    final capsule = await _supabase
-        .from('capsules')
-        .select()
-        .eq('id', capsuleId)
-        .eq('admin_id', user.id)
-        .single();
-
-    if (capsule == null) throw Exception('Access denied');
-
-    final response = await _supabase
-        .from('capsule_messages')
-        .insert({
-          'capsule_id': capsuleId,
-          'message': message,
-          'media_url': mediaUrl,
-          'status': 'submitted',
-        })
-        .select()
-        .single();
-
-    return CapsuleMessage.fromJson(response);
+        .eq('admin_id', user.id);
   }
 }

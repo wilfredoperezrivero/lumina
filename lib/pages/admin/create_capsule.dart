@@ -11,9 +11,32 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _familyEmailController = TextEditingController();
   DateTime? _scheduledDate;
   bool _isLoading = false;
   String? _errorMessage;
+  int _packs = 0;
+  int _capsules = 0;
+  bool _loadingCredits = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCredits();
+  }
+
+  Future<void> _loadCredits() async {
+    setState(() {
+      _loadingCredits = true;
+    });
+    // TODO: Replace with real API calls to get packs and capsules count
+    // For now, use dummy values
+    _packs = 3; // Example: fetch from Supabase
+    _capsules = 3; // Example: fetch from Supabase
+    setState(() {
+      _loadingCredits = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +84,24 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                 },
               ),
               SizedBox(height: 16),
+              TextFormField(
+                controller: _familyEmailController,
+                decoration: InputDecoration(
+                  labelText: 'Family Email',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a family email';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
               ListTile(
                 leading: Icon(Icons.calendar_today),
                 title: Text('Scheduled Date (Optional)'),
@@ -79,6 +120,21 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                 ),
                 onTap: () => _selectDate(context),
               ),
+              SizedBox(height: 16),
+              if (_loadingCredits) Center(child: CircularProgressIndicator()),
+              if (!_loadingCredits)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Available Credits: ${_packs - _capsules}'),
+                    if (_packs - _capsules <= 0)
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed('/admin/buy_packs'),
+                        child: Text('Buy Packs'),
+                      ),
+                  ],
+                ),
               SizedBox(height: 24),
               if (_errorMessage != null)
                 Container(
@@ -96,7 +152,10 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
               SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _createCapsule,
+                  onPressed:
+                      _isLoading || _loadingCredits || (_packs - _capsules <= 0)
+                          ? null
+                          : _createCapsule,
                   child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
                       : Text('Create Capsule'),
@@ -133,15 +192,22 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     });
 
     try {
+      // Create a new user for the family email (if needed)
+      // TODO: Replace with real user creation logic
+      await Future.delayed(Duration(milliseconds: 500)); // Simulate network
+      // Then create the capsule
       final capsule = await CapsuleService.createCapsule(
         name: _nameController.text,
         description: _descriptionController.text,
         scheduledDate: _scheduledDate,
+        // Optionally pass family email in settings or another field
+        settings: {'family_email': _familyEmailController.text},
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Capsule "${capsule.name}" created successfully!'),
+          content: Text(
+              'Capsule "${capsule.title ?? '(No Title)'}" created successfully!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -159,6 +225,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
+    _familyEmailController.dispose();
     super.dispose();
   }
 }

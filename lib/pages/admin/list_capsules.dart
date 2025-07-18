@@ -119,64 +119,68 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
                               contentPadding: EdgeInsets.all(16),
                               leading: CircleAvatar(
                                 backgroundColor:
-                                    _getStatusColor(capsule.status),
+                                    _getStatusColor(capsule.status ?? ''),
                                 child: Icon(
-                                  _getStatusIcon(capsule.status),
+                                  _getStatusIcon(capsule.status ?? ''),
                                   color: Colors.white,
                                 ),
                               ),
                               title: Text(
-                                capsule.name,
+                                capsule.title ?? '(No Title)',
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   SizedBox(height: 4),
-                                  Text(
-                                    capsule.description,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.calendar_today, size: 16),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Created: ${_formatDate(capsule.createdAt)}',
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
-                                  if (capsule.scheduledDate != null) ...[
-                                    SizedBox(height: 4),
+                                  if (capsule.description != null)
+                                    Text(
+                                      capsule.description!,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  if (capsule.familyEmail != null)
                                     Row(
                                       children: [
-                                        Icon(Icons.schedule, size: 16),
+                                        Icon(Icons.email, size: 16),
                                         SizedBox(width: 4),
                                         Text(
-                                          'Scheduled: ${_formatDate(capsule.scheduledDate!)}',
+                                          capsule.familyEmail!,
                                           style: TextStyle(fontSize: 12),
                                         ),
                                       ],
                                     ),
-                                  ],
-                                  SizedBox(height: 4),
+                                  if (capsule.expiresAt != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          top: 8.0, bottom: 4.0),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.calendar_today, size: 16),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Expires: ${_formatDate(capsule.expiresAt!)}',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   Container(
                                     padding: EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(capsule.status)
-                                          .withOpacity(0.1),
+                                      color:
+                                          _getStatusColor(capsule.status ?? '')
+                                              .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      capsule.status.toUpperCase(),
+                                      (capsule.status ?? '').toUpperCase(),
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: _getStatusColor(capsule.status),
+                                        color: _getStatusColor(
+                                            capsule.status ?? ''),
                                       ),
                                     ),
                                   ),
@@ -213,18 +217,6 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
                                         Icon(Icons.message),
                                         SizedBox(width: 8),
                                         Text('View Messages'),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete, color: Colors.red),
-                                        SizedBox(width: 8),
-                                        Text('Delete',
-                                            style:
-                                                TextStyle(color: Colors.red)),
                                       ],
                                     ),
                                   ),
@@ -273,65 +265,25 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
       case 'view':
         // TODO: Navigate to capsule details page
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('View details for ${capsule.name}')),
+          SnackBar(
+              content:
+                  Text('View details for ${capsule.title ?? '(No Title)'}')),
         );
         break;
       case 'edit':
         // TODO: Navigate to edit capsule page
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Edit ${capsule.name}')),
+          SnackBar(content: Text('Edit ${capsule.title ?? '(No Title)'}')),
         );
         break;
       case 'messages':
         // TODO: Navigate to messages page
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('View messages for ${capsule.name}')),
+          SnackBar(
+              content:
+                  Text('View messages for ${capsule.title ?? '(No Title)'}')),
         );
         break;
-      case 'delete':
-        _showDeleteDialog(capsule);
-        break;
     }
-  }
-
-  void _showDeleteDialog(Capsule capsule) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Delete Capsule'),
-        content: Text(
-            'Are you sure you want to delete "${capsule.name}"? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await CapsuleService.deleteCapsule(capsule.id);
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Capsule deleted successfully!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                _loadCapsules(); // Refresh the list
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to delete capsule: ${e.toString()}'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('Delete'),
-          ),
-        ],
-      ),
-    );
   }
 }

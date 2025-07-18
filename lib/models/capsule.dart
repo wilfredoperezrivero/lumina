@@ -1,53 +1,57 @@
 class Capsule {
   final String id;
-  final String name;
-  final String description;
-  final String adminId;
+  final String? adminId;
   final String? familyId;
-  final DateTime createdAt;
-  final DateTime? scheduledDate;
-  final String status; // 'draft', 'active', 'completed'
-  final Map<String, dynamic> settings;
+  final String? packId;
+  final String? title;
+  final String? description;
+  final DateTime? expiresAt;
+  final String? finalVideoUrl;
+  final String? status;
+  final String? familyEmail;
 
   Capsule({
     required this.id,
-    required this.name,
-    required this.description,
-    required this.adminId,
+    this.adminId,
     this.familyId,
-    required this.createdAt,
-    this.scheduledDate,
-    required this.status,
-    required this.settings,
+    this.packId,
+    this.title,
+    this.description,
+    this.expiresAt,
+    this.finalVideoUrl,
+    this.status,
+    this.familyEmail,
   });
 
   factory Capsule.fromJson(Map<String, dynamic> json) {
     return Capsule(
       id: json['id'],
-      name: json['name'],
-      description: json['description'],
       adminId: json['admin_id'],
       familyId: json['family_id'],
-      createdAt: DateTime.parse(json['created_at']),
-      scheduledDate: json['scheduled_date'] != null
-          ? DateTime.parse(json['scheduled_date'])
+      packId: json['pack_id'],
+      title: json['title'],
+      description: json['description'],
+      expiresAt: json['expires_at'] != null
+          ? DateTime.tryParse(json['expires_at'])
           : null,
+      finalVideoUrl: json['final_video_url'],
       status: json['status'],
-      settings: json['settings'] ?? {},
+      familyEmail: json['family_email'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
-      'description': description,
       'admin_id': adminId,
       'family_id': familyId,
-      'created_at': createdAt.toIso8601String(),
-      'scheduled_date': scheduledDate?.toIso8601String(),
+      'pack_id': packId,
+      'title': title,
+      'description': description,
+      'expires_at': expiresAt?.toIso8601String(),
+      'final_video_url': finalVideoUrl,
       'status': status,
-      'settings': settings,
+      'family_email': familyEmail,
     };
   }
 }

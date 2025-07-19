@@ -88,7 +88,11 @@ class _LoginPageState extends State<LoginPage> {
                   prefixIcon: Icon(Icons.lock),
                 ),
                 obscureText: true,
-                onSubmitted: (_) => _login(),
+                onSubmitted: (_) {
+                  if (_gdprAccepted && !_isLoading) {
+                    _login();
+                  }
+                },
               ),
               SizedBox(height: 16),
               Align(

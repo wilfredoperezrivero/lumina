@@ -7,23 +7,33 @@ class CapsuleService {
 
   // Create a new capsule
   static Future<Capsule> createCapsule({
-    required String name,
+    required String title,
     required String description,
+    required String adminId,
+    String? familyId,
+    String? packId,
+    DateTime? expiresAt,
+    String? finalVideoUrl,
+    String? status,
+    String? familyEmail,
+    DateTime? createdAt,
     DateTime? scheduledDate,
-    Map<String, dynamic>? settings,
   }) async {
-    final user = AuthService.currentUser();
-    if (user == null) throw Exception('User not authenticated');
-
     final response = await _supabase
         .from('capsules')
         .insert({
-          'name': name,
+          'title': title,
           'description': description,
-          'admin_id': user.id,
-          'scheduled_date': scheduledDate?.toIso8601String(),
-          'status': 'draft',
-          'settings': settings ?? {},
+          'admin_id': adminId,
+          if (familyId != null) 'family_id': familyId,
+          if (packId != null) 'pack_id': packId,
+          if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
+          if (finalVideoUrl != null) 'final_video_url': finalVideoUrl,
+          'status': status ?? 'active',
+          if (familyEmail != null) 'family_email': familyEmail,
+          if (createdAt != null) 'created_at': createdAt.toIso8601String(),
+          if (scheduledDate != null)
+            'scheduled_date': scheduledDate.toIso8601String(),
         })
         .select()
         .single();
@@ -81,15 +91,5 @@ class CapsuleService {
         .single();
 
     return Capsule.fromJson(response);
-  }
-
-  static Future<void> deleteCapsule(String capsuleId) async {
-    final user = AuthService.currentUser();
-    if (user == null) throw Exception('User not authenticated');
-    await _supabase
-        .from('capsules')
-        .delete()
-        .eq('id', capsuleId)
-        .eq('admin_id', user.id);
   }
 }

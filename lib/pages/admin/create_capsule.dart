@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/capsule_service.dart';
 import '../../models/capsule.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart'; // Added import for Supabase
+import '../../services/auth_service.dart';
 
 class CreateCapsulePage extends StatefulWidget {
   @override
@@ -15,9 +19,9 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   DateTime? _scheduledDate;
   bool _isLoading = false;
   String? _errorMessage;
-  int _packs = 0;
-  int _capsules = 0;
+  int _credits = 0;
   bool _loadingCredits = true;
+  bool _restoringSession = false;
 
   @override
   void initState() {
@@ -29,10 +33,9 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     setState(() {
       _loadingCredits = true;
     });
-    // TODO: Replace with real API calls to get packs and capsules count
-    // For now, use dummy values
-    _packs = 3; // Example: fetch from Supabase
-    _capsules = 3; // Example: fetch from Supabase
+    // TODO: Replace with real API call to get credits
+    // For now, use dummy value
+    _credits = 2; // Example: fetch from Supabase
     setState(() {
       _loadingCredits = false;
     });
@@ -53,7 +56,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!_loadingCredits && (_packs - _capsules <= 0))
+              if (!_loadingCredits && _credits <= 0)
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.all(16),
@@ -163,10 +166,9 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
               SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  onPressed:
-                      _isLoading || _loadingCredits || (_packs - _capsules <= 0)
-                          ? null
-                          : _createCapsule,
+                  onPressed: _isLoading || _loadingCredits || (_credits <= 0)
+                      ? null
+                      : _createCapsule,
                   child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
                       : Text('Create Capsule'),
@@ -203,22 +205,57 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     });
 
     try {
-      // Create a new user for the family email (if needed)
-      // TODO: Replace with real user creation logic
-      await Future.delayed(Duration(milliseconds: 500)); // Simulate network
-      // Then create the capsule
+      // Create a new user with the family email via backend
+      final String password =
+          'temp_password_${DateTime.now().millisecondsSinceEpoch}';
+      final response = await http.post(
+        Uri.parse(
+            'https://honbdlyinaybyojfiihu.supabase.co/functions/v1/create-family-user'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': _familyEmailController.text,
+          'password': password,
+          'capsuleTitle': _nameController.text,
+          'capsuleDescription': _descriptionController.text,
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        setState(() {
+          _errorMessage = 'Failed to create user: \\${response.body}';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final newUser = jsonDecode(response.body)['user'];
+      final familyUserId = newUser['id'];
+
+      // Get the current user (admin)
+      final adminUser = AuthService.currentUser();
+      if (adminUser == null) {
+        setState(() {
+          _errorMessage = 'Current user not authenticated.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Create the capsule with admin_id as current user and family_id as new user
       final capsule = await CapsuleService.createCapsule(
-        name: _nameController.text,
+        title: _nameController.text,
         description: _descriptionController.text,
+        adminId: adminUser.id,
+        familyId: familyUserId,
+        familyEmail: _familyEmailController.text,
         scheduledDate: _scheduledDate,
-        // Optionally pass family email in settings or another field
-        settings: {'family_email': _familyEmailController.text},
+        status: 'active',
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Capsule "${capsule.title ?? '(No Title)'}" created successfully!'),
+              'Capsule created successfully! Email sent to ${_familyEmailController.text}'),
           backgroundColor: Colors.green,
         ),
       );

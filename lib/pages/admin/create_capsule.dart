@@ -211,7 +211,10 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
           'temp_password_${DateTime.now().millisecondsSinceEpoch}';
       final response = await http.post(
         Uri.parse(dotenv.env['API_CREATE_FAMILY_USER']!),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${dotenv.env['SUPABASE_ANON_KEY']}',
+        },
         body: jsonEncode({
           'email': _familyEmailController.text,
           'password': password,
@@ -228,7 +231,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
         return;
       }
 
-      final newUser = jsonDecode(response.body)['user'];
+      final newUser = jsonDecode(response.body);
       final familyUserId = newUser['id'];
 
       // Get the current user (admin)

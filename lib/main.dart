@@ -6,6 +6,7 @@ import 'pages/auth/login.dart';
 import 'pages/admin/dashboard.dart';
 import 'pages/admin/create_capsule.dart';
 import 'pages/admin/list_capsules.dart';
+import 'pages/admin/buy_packs.dart';
 import 'services/auth_service.dart';
 import 'pages/auth/reset_password.dart';
 import 'package:uni_links/uni_links.dart';
@@ -60,6 +61,10 @@ GoRouter _router([String? initialRoute]) => GoRouter(
         GoRoute(
           path: '/admin/list_capsules',
           builder: (context, state) => ListCapsulesPage(),
+        ),
+        GoRoute(
+          path: '/admin/buy_packs',
+          builder: (context, state) => BuyPacksPage(),
         ),
         GoRoute(
           path: '/reset-password',

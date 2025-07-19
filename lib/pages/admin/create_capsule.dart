@@ -53,6 +53,31 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (!_loadingCredits && (_packs - _capsules <= 0))
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16),
+                  margin: EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    border: Border.all(color: Colors.red.shade200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'No credits available. You need to buy more packs.',
+                        style: TextStyle(color: Colors.red.shade800),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed('/admin/buy_packs'),
+                        child: Text('Buy Packs'),
+                      ),
+                    ],
+                  ),
+                ),
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -120,21 +145,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                 ),
                 onTap: () => _selectDate(context),
               ),
-              SizedBox(height: 16),
               if (_loadingCredits) Center(child: CircularProgressIndicator()),
-              if (!_loadingCredits)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Available Credits: ${_packs - _capsules}'),
-                    if (_packs - _capsules <= 0)
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed('/admin/buy_packs'),
-                        child: Text('Buy Packs'),
-                      ),
-                  ],
-                ),
               SizedBox(height: 24),
               if (_errorMessage != null)
                 Container(

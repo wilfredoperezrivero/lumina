@@ -10,13 +10,14 @@ import 'services/auth_service.dart';
 import 'pages/auth/reset_password.dart';
 import 'package:uni_links/uni_links.dart';
 import 'dart:async';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
   await Supabase.initialize(
-    url: 'https://honbdlyinaybyojfiihu.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhvbmJkbHlpbmF5YnlvamZpaWh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwNzk0NDksImV4cCI6MjA2NjY1NTQ0OX0.MIBhPKFoXJcNdg6gb5AfqOvDeMMqY1UCr42lMPpblyI',
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
   // Listen for incoming links for password reset
   final initialLink = await getInitialLink();

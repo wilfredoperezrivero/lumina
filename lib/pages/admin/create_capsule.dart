@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart'; // Added import for Supabase
 import '../../services/auth_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class CreateCapsulePage extends StatefulWidget {
   @override
@@ -209,8 +210,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
       final String password =
           'temp_password_${DateTime.now().millisecondsSinceEpoch}';
       final response = await http.post(
-        Uri.parse(
-            'https://honbdlyinaybyojfiihu.supabase.co/functions/v1/create-family-user'),
+        Uri.parse(dotenv.env['API_CREATE_FAMILY_USER']!),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _familyEmailController.text,

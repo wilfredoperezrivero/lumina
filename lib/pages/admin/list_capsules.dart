@@ -11,6 +11,7 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
   List<Capsule> _capsules = [];
   bool _isLoading = true;
   String? _errorMessage;
+  String _statusFilter = 'All';
 
   @override
   void initState() {
@@ -36,6 +37,14 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
         _isLoading = false;
       });
     }
+  }
+
+  List<Capsule> get _filteredCapsules {
+    if (_statusFilter == 'All') return _capsules;
+    return _capsules
+        .where((c) =>
+            (c.status ?? '').toLowerCase() == _statusFilter.toLowerCase())
+        .toList();
   }
 
   @override
@@ -108,123 +117,171 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
                     )
                   : RefreshIndicator(
                       onRefresh: _loadCapsules,
-                      child: ListView.builder(
-                        padding: EdgeInsets.all(16),
-                        itemCount: _capsules.length,
-                        itemBuilder: (context, index) {
-                          final capsule = _capsules[index];
-                          return Card(
-                            margin: EdgeInsets.only(bottom: 16),
-                            child: ListTile(
-                              contentPadding: EdgeInsets.all(16),
-                              leading: CircleAvatar(
-                                backgroundColor:
-                                    _getStatusColor(capsule.status ?? ''),
-                                child: Icon(
-                                  _getStatusIcon(capsule.status ?? ''),
-                                  color: Colors.white,
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            child: Row(
+                              children: [
+                                Text('Filter by status: '),
+                                SizedBox(width: 8),
+                                DropdownButton<String>(
+                                  value: _statusFilter,
+                                  items: [
+                                    'All',
+                                    'Active',
+                                    'Draft',
+                                    'Completed',
+                                  ]
+                                      .map((status) => DropdownMenuItem(
+                                            value: status,
+                                            child: Text(status),
+                                          ))
+                                      .toList(),
+                                  onChanged: (value) {
+                                    if (value != null) {
+                                      setState(() {
+                                        _statusFilter = value;
+                                      });
+                                    }
+                                  },
                                 ),
-                              ),
-                              title: Text(
-                                capsule.title ?? '(No Title)',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(height: 4),
-                                  if (capsule.description != null)
-                                    Text(
-                                      capsule.description!,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              padding: EdgeInsets.all(16),
+                              itemCount: _filteredCapsules.length,
+                              itemBuilder: (context, index) {
+                                final capsule = _filteredCapsules[index];
+                                final String description =
+                                    capsule.description ?? '';
+                                final String familyEmail =
+                                    capsule.familyEmail ?? '';
+                                return Card(
+                                  margin: EdgeInsets.only(bottom: 16),
+                                  child: ListTile(
+                                    contentPadding: EdgeInsets.all(16),
+                                    leading: CircleAvatar(
+                                      backgroundColor:
+                                          _getStatusColor(capsule.status ?? ''),
+                                      child: Icon(
+                                        _getStatusIcon(capsule.status ?? ''),
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  if (capsule.familyEmail != null)
-                                    Row(
+                                    title: Text(
+                                      capsule.title ?? '(No Title)',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Icon(Icons.email, size: 16),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          capsule.familyEmail!,
-                                          style: TextStyle(fontSize: 12),
+                                        SizedBox(height: 4),
+                                        if (description.isNotEmpty)
+                                          Text(
+                                            description,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        if (familyEmail.isNotEmpty)
+                                          Row(
+                                            children: [
+                                              Icon(Icons.email, size: 16),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                familyEmail,
+                                                style: TextStyle(fontSize: 12),
+                                              ),
+                                            ],
+                                          ),
+                                        if (capsule.expiresAt != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                top: 8.0, bottom: 4.0),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.calendar_today,
+                                                    size: 16),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  'Expires: ${_formatDate(capsule.expiresAt!)}',
+                                                  style:
+                                                      TextStyle(fontSize: 12),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                              horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _getStatusColor(
+                                                    capsule.status ?? '')
+                                                .withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            (capsule.status ?? '')
+                                                .toUpperCase(),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: _getStatusColor(
+                                                  capsule.status ?? ''),
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  if (capsule.expiresAt != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          top: 8.0, bottom: 4.0),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.calendar_today, size: 16),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'Expires: ${_formatDate(capsule.expiresAt!)}',
-                                            style: TextStyle(fontSize: 12),
+                                    trailing: PopupMenuButton<String>(
+                                      onSelected: (value) =>
+                                          _handleMenuAction(value, capsule),
+                                      itemBuilder: (context) => [
+                                        PopupMenuItem(
+                                          value: 'view',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.visibility),
+                                              SizedBox(width: 8),
+                                              Text('View Details'),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          _getStatusColor(capsule.status ?? '')
-                                              .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      (capsule.status ?? '').toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: _getStatusColor(
-                                            capsule.status ?? ''),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              trailing: PopupMenuButton<String>(
-                                onSelected: (value) =>
-                                    _handleMenuAction(value, capsule),
-                                itemBuilder: (context) => [
-                                  PopupMenuItem(
-                                    value: 'view',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.visibility),
-                                        SizedBox(width: 8),
-                                        Text('View Details'),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit),
+                                              SizedBox(width: 8),
+                                              Text('Edit'),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'messages',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.message),
+                                              SizedBox(width: 8),
+                                              Text('View Messages'),
+                                            ],
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                  PopupMenuItem(
-                                    value: 'edit',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.edit),
-                                        SizedBox(width: 8),
-                                        Text('Edit'),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'messages',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.message),
-                                        SizedBox(width: 8),
-                                        Text('View Messages'),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
-                          );
-                        },
+                          ),
+                        ],
                       ),
                     ),
     );

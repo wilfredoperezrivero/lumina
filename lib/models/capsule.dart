@@ -2,25 +2,27 @@ class Capsule {
   final String id;
   final String? adminId;
   final String? familyId;
-  final String? packId;
   final String? title;
   final String? description;
   final DateTime? expiresAt;
   final String? finalVideoUrl;
   final String? status;
   final String? familyEmail;
+  final DateTime? createdAt;
+  final DateTime? scheduledDate;
 
   Capsule({
     required this.id,
     this.adminId,
     this.familyId,
-    this.packId,
     this.title,
     this.description,
     this.expiresAt,
     this.finalVideoUrl,
     this.status,
     this.familyEmail,
+    this.createdAt,
+    this.scheduledDate,
   });
 
   factory Capsule.fromJson(Map<String, dynamic> json) {
@@ -28,7 +30,6 @@ class Capsule {
       id: json['id'],
       adminId: json['admin_id'],
       familyId: json['family_id'],
-      packId: json['pack_id'],
       title: json['title'],
       description: json['description'],
       expiresAt: json['expires_at'] != null
@@ -37,6 +38,12 @@ class Capsule {
       finalVideoUrl: json['final_video_url'],
       status: json['status'],
       familyEmail: json['family_email'],
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      scheduledDate: json['scheduled_date'] != null
+          ? DateTime.tryParse(json['scheduled_date'])
+          : null,
     );
   }
 
@@ -45,13 +52,14 @@ class Capsule {
       'id': id,
       'admin_id': adminId,
       'family_id': familyId,
-      'pack_id': packId,
       'title': title,
       'description': description,
       'expires_at': expiresAt?.toIso8601String(),
       'final_video_url': finalVideoUrl,
       'status': status,
       'family_email': familyEmail,
+      'created_at': createdAt?.toIso8601String(),
+      'scheduled_date': scheduledDate?.toIso8601String(),
     };
   }
 }

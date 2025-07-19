@@ -270,7 +270,7 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
                                             children: [
                                               Icon(Icons.message),
                                               SizedBox(width: 8),
-                                              Text('View Messages'),
+                                              Text('View QR Code'),
                                             ],
                                           ),
                                         ),
@@ -305,7 +305,7 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
       case 'draft':
         return Icons.edit;
       case 'active':
-        return Icons.play_arrow;
+        return Icons.account_box;
       case 'completed':
         return Icons.check;
       default:

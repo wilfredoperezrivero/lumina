@@ -65,7 +65,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               SizedBox(height: 24),
               Text(
-                'Welcome to Lumina',
+                'Welcome to Lumina Funeral Homes Admin',
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center,
               ),

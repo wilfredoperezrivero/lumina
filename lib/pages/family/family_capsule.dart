@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/capsule.dart';
@@ -21,7 +22,6 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
   bool _isLoading = true;
   String? _errorMessage;
   String? _publicUrl;
-  String? _qrUrl;
   bool _isGeneratingVideo = false;
 
   @override
@@ -49,10 +49,8 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
         throw Exception('No capsule assigned to this family');
       }
 
-      // Generate URLs
-      final baseUrl = 'https://luminamemorials.com';
-      _publicUrl = '$baseUrl/capsule/${familyCapsule.id}';
-      _qrUrl = '$baseUrl/qr/${familyCapsule.id}';
+      // Generate public URL
+      _publicUrl = 'https://capsule.luminamemorials.com/${familyCapsule.id}';
 
       setState(() {
         _capsule = familyCapsule;
@@ -100,43 +98,6 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
     }
   }
 
-  Future<void> _downloadQR() async {
-    if (_qrUrl == null) return;
-
-    try {
-      final qrData = _qrUrl!;
-      final qrImage = QrPainter(
-        data: qrData,
-        version: QrVersions.auto,
-        color: Colors.black,
-        emptyColor: Colors.white,
-      );
-
-      final directory = await getApplicationDocumentsDirectory();
-      final path = '${directory.path}/capsule_qr_${_capsule!.id}.png';
-
-      final file = File(path);
-      final byteData = await qrImage.toImageData(2048.0);
-      final buffer = byteData!.buffer;
-      await file.writeAsBytes(
-          buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('QR code saved to: $path'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to download QR: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   Future<void> _openUrl(String url) async {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
@@ -148,6 +109,17 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
         ),
       );
     }
+  }
+
+  Future<void> _copyToClipboard(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('URL copied to clipboard'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   Widget _buildCapsuleInfo() {
@@ -215,6 +187,81 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
     );
   }
 
+  Widget _buildQRCode() {
+    if (_publicUrl == null) return Container();
+
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'QR Code',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            SizedBox(height: 16),
+            Center(
+              child: QrImageView(
+                data: _publicUrl!,
+                version: QrVersions.auto,
+                size: 200.0,
+                backgroundColor: Colors.white,
+              ),
+            ),
+            SizedBox(height: 16),
+            Center(
+              child: Text(
+                'Scan to access capsule',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            SizedBox(height: 16),
+            // Public URL with copy button
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _openUrl(_publicUrl!),
+                      child: Text(
+                        _publicUrl!,
+                        style: TextStyle(
+                          color: Colors.blue[600],
+                          decoration: TextDecoration.underline,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => _copyToClipboard(_publicUrl!),
+                    icon: Icon(Icons.copy, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: BoxConstraints(),
+                    tooltip: 'Copy URL',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildActions() {
     return Card(
       child: Padding(
@@ -233,34 +280,6 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
               spacing: 12,
               runSpacing: 12,
               children: [
-                ElevatedButton.icon(
-                  onPressed:
-                      _publicUrl != null ? () => _openUrl(_publicUrl!) : null,
-                  icon: Icon(Icons.link),
-                  label: Text('Public URL'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade600,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _qrUrl != null ? () => _openUrl(_qrUrl!) : null,
-                  icon: Icon(Icons.qr_code),
-                  label: Text('QR URL'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade600,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _downloadQR,
-                  icon: Icon(Icons.download),
-                  label: Text('Download QR'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade600,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
                 ElevatedButton.icon(
                   onPressed: () => context.go('/family/messages'),
                   icon: Icon(Icons.message),
@@ -356,6 +375,8 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildCapsuleInfo(),
+                      SizedBox(height: 16),
+                      _buildQRCode(),
                       SizedBox(height: 16),
                       _buildActions(),
                     ],

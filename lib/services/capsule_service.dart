@@ -45,18 +45,56 @@ class CapsuleService {
     return Capsule.fromJson(response);
   }
 
-  // Get all capsules created by current user
-  static Future<List<Capsule>> getUserCapsules() async {
-    final user = AuthService.currentUser();
+  // Get all capsules for the current user (admin or family)
+  static Future<List<Capsule>> getCapsules() async {
+    final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
-    final response =
-        await _supabase.from('capsules').select().eq('admin_id', user.id);
+    // Check user role
+    final userRole = user.userMetadata?['role'] ?? 'family';
 
-    final List data = response as List;
-    return data
-        .map((json) => Capsule.fromJson(json as Map<String, dynamic>))
-        .toList();
+    if (userRole == 'admin') {
+      // Admin can see all their capsules
+      final response = await _supabase
+          .from('capsules')
+          .select()
+          .eq('admin_id', user.id)
+          .order('created_at', ascending: false);
+
+      return response.map((json) => Capsule.fromJson(json)).toList();
+    } else {
+      // Family can only see their assigned capsule
+      final response = await _supabase
+          .from('capsules')
+          .select()
+          .eq('family_id', user.id)
+          .order('created_at', ascending: false);
+
+      return response.map((json) => Capsule.fromJson(json)).toList();
+    }
+  }
+
+  // Generate video for a capsule
+  static Future<void> generateVideo(String capsuleId) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    // Update capsule status to indicate video generation
+    await _supabase.from('capsules').update({
+      'status': 'generating',
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', capsuleId);
+
+    // TODO: Call actual video generation API
+    // For now, just simulate the process
+    await Future.delayed(Duration(seconds: 2));
+
+    // Update with final video URL (simulated)
+    await _supabase.from('capsules').update({
+      'status': 'completed',
+      'final_video_url': 'https://example.com/videos/$capsuleId.mp4',
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', capsuleId);
   }
 
   // Update capsule

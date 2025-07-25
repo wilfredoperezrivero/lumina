@@ -34,28 +34,6 @@ class AuthService extends ChangeNotifier {
     await Supabase.instance.client.auth.resetPasswordForEmail(email);
   }
 
-  static Future<User> createUserWithEmail(
-    String email,
-    String password, {
-    String? capsuleTitle,
-    String? capsuleDescription,
-  }) async {
-    final response = await Supabase.instance.client.auth.signUp(
-      email: email,
-      password: password,
-      data: {
-        'role': 'family',
-        if (capsuleTitle != null) 'capsule_title': capsuleTitle,
-        if (capsuleDescription != null)
-          'capsule_description': capsuleDescription,
-      },
-    );
-    if (response.user == null) {
-      throw Exception('Failed to create user');
-    }
-    return response.user!;
-  }
-
   static ChangeNotifier authStateChanges() {
     return _AuthStateNotifier();
   }

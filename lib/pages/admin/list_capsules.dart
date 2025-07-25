@@ -26,7 +26,7 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
     });
 
     try {
-      final capsules = await CapsuleService.getUserCapsules();
+      final capsules = await CapsuleService.getCapsules();
       setState(() {
         _capsules = capsules;
         _isLoading = false;

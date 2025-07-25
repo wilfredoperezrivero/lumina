@@ -2,20 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'services/auth_service.dart';
+import 'package:uni_links/uni_links.dart';
+import 'dart:async';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+// Auth pages
 import 'pages/auth/login.dart';
+import 'pages/auth/reset_password.dart';
+
+// Admin pages
 import 'pages/admin/dashboard.dart';
 import 'pages/admin/create_capsule.dart';
-import 'pages/admin/edit_capsule.dart';
-import 'pages/admin/capsule_details.dart';
 import 'pages/admin/list_capsules.dart';
 import 'pages/admin/buy_packs.dart';
 import 'pages/admin/settings.dart';
 import 'pages/admin/marketing.dart';
-import 'services/auth_service.dart';
-import 'pages/auth/reset_password.dart';
-import 'package:uni_links/uni_links.dart';
-import 'dart:async';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'pages/admin/edit_capsule.dart';
+import 'pages/admin/capsule_details.dart';
+
+// Family pages
+import 'pages/family/family_capsule.dart';
+import 'pages/family/family_messages.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,6 +62,7 @@ GoRouter _router([String? initialRoute]) => GoRouter(
           path: '/login',
           builder: (context, state) => LoginPage(),
         ),
+        // Admin routes
         GoRoute(
           path: '/admin/dashboard',
           builder: (context, state) => AdminDashboardPage(),
@@ -86,21 +95,66 @@ GoRouter _router([String? initialRoute]) => GoRouter(
           path: '/admin/marketing',
           builder: (context, state) => MarketingPage(),
         ),
+        // Family routes
+        GoRoute(
+          path: '/family/capsule',
+          builder: (context, state) => FamilyCapsulePage(),
+        ),
+        GoRoute(
+          path: '/family/messages',
+          builder: (context, state) => FamilyMessagesPage(),
+        ),
         GoRoute(
           path: '/reset-password',
           builder: (context, state) => ResetPasswordPage(),
         ),
       ],
       redirect: (context, state) {
-        final user = AuthService.currentUser();
-        final isLoginRoute = state.uri.path == '/login';
+        final user = Supabase.instance.client.auth.currentUser;
+        final session = Supabase.instance.client.auth.currentSession;
+        final isAuthenticated =
+            user != null && session != null && !session.isExpired;
 
-        if (user == null && !isLoginRoute) {
+        final isLoginRoute = state.uri.path == '/login';
+        final isResetPasswordRoute = state.uri.path == '/reset-password';
+
+        // If not authenticated and not on login/reset password, redirect to login
+        if (!isAuthenticated && !isLoginRoute && !isResetPasswordRoute) {
           return '/login';
         }
 
-        if (user != null && isLoginRoute) {
-          return '/admin/dashboard';
+        // If authenticated and on login, redirect based on role
+        if (isAuthenticated && isLoginRoute) {
+          final userRole = user!.userMetadata?['role'] ?? 'admin';
+          if (userRole == 'admin') {
+            return '/admin/dashboard';
+          } else {
+            return '/family/capsule';
+          }
+        }
+
+        // If authenticated, check role-based access
+        if (isAuthenticated) {
+          final userRole = user!.userMetadata?['role'] ?? 'admin';
+          final isAdminRoute = state.uri.path.startsWith('/admin');
+          final isFamilyRoute = state.uri.path.startsWith('/family');
+
+          // Admin users can access admin routes
+          if (userRole == 'admin' && isAdminRoute) {
+            return null;
+          }
+
+          // Family users can access family routes
+          if (userRole == 'family' && isFamilyRoute) {
+            return null;
+          }
+
+          // Redirect based on role
+          if (userRole == 'admin') {
+            return '/admin/dashboard';
+          } else {
+            return '/family/capsule';
+          }
         }
 
         return null;

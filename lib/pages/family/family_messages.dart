@@ -1,0 +1,259 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../models/capsule.dart';
+import '../../services/capsule_service.dart';
+import '../../services/message_service.dart';
+import '../../models/message.dart';
+
+class FamilyMessagesPage extends StatefulWidget {
+  @override
+  _FamilyMessagesPageState createState() => _FamilyMessagesPageState();
+}
+
+class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
+  Capsule? _capsule;
+  List<Message> _messages = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      // Get capsule assigned to this family user
+      final capsules = await CapsuleService.getCapsules();
+      final familyCapsule =
+          capsules.where((c) => c.familyId == user.id).firstOrNull;
+
+      if (familyCapsule == null) {
+        throw Exception('No capsule assigned to this family');
+      }
+
+      // Get messages for this capsule
+      final messages =
+          await MessageService.getMessagesForCapsule(familyCapsule.id);
+
+      setState(() {
+        _capsule = familyCapsule;
+        _messages = messages;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load messages: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Widget _buildMessageCard(Message message) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  message.contributorName ?? 'Anonymous',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  _formatDate(message.submittedAt),
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            if (message.contributorEmail?.isNotEmpty == true) ...[
+              SizedBox(height: 4),
+              Text(
+                message.contributorEmail!,
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                ),
+              ),
+            ],
+            SizedBox(height: 12),
+            if (message.contentText?.isNotEmpty == true) ...[
+              Text(
+                message.contentText!,
+                style: TextStyle(fontSize: 14),
+              ),
+              SizedBox(height: 8),
+            ],
+            if (message.contentAudioUrl?.isNotEmpty == true) ...[
+              Row(
+                children: [
+                  Icon(Icons.audiotrack, size: 16, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Audio message available',
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+            ],
+            if (message.contentVideoUrl?.isNotEmpty == true) ...[
+              Row(
+                children: [
+                  Icon(Icons.videocam, size: 16, color: Colors.red),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Video message available',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Unknown date';
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Messages'),
+        backgroundColor: Colors.blue[600],
+        foregroundColor: Colors.white,
+        elevation: 2,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => context.go('/family/capsule'),
+        ),
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error, size: 64, color: Colors.red),
+                      SizedBox(height: 16),
+                      Text(
+                        _errorMessage!,
+                        style: TextStyle(fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: [
+                    if (_capsule != null)
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(16),
+                        color: Colors.blue[50],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Capsule: ${_capsule!.name ?? 'Unnamed'}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '${_messages.length} message${_messages.length == 1 ? '' : 's'}',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Expanded(
+                      child: _messages.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.message,
+                                      size: 64, color: Colors.grey),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    'No messages yet',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Messages from friends and family will appear here',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[500],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _loadData,
+                              child: ListView.builder(
+                                padding: EdgeInsets.all(16),
+                                itemCount: _messages.length,
+                                itemBuilder: (context, index) {
+                                  return _buildMessageCard(_messages[index]);
+                                },
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+    );
+  }
+}

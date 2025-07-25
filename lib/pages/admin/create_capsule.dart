@@ -342,7 +342,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     try {
       // Create a new user with the family email via backend
       final String password =
-          'temp_password_${DateTime.now().millisecondsSinceEpoch}';
+          'test2025'; // 'temp_password_${DateTime.now().millisecondsSinceEpoch}';
       final response = await http.post(
         Uri.parse(dotenv.env['API_CREATE_FAMILY_USER']!),
         headers: {
@@ -352,8 +352,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
         body: jsonEncode({
           'email': _familyEmailController.text,
           'password': password,
-          'capsuleTitle': _nameController.text,
-          'capsuleDescription': '', // Removed description
+          'capsuleName': _nameController.text,
         }),
       );
 
@@ -366,7 +365,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
       }
 
       final newUser = jsonDecode(response.body);
-      final familyUserId = newUser['id'];
+      final familyUserId = newUser['user']['id'];
 
       // Get the current user (admin)
       final adminUser = AuthService.currentUser();

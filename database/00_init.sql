@@ -1,19 +1,19 @@
--- Lumina Admin Database Schema
--- Master initialization file
--- Run this file to set up the complete database schema
+-- Master script to initialize the entire database schema
+-- Run this script to set up all tables, views, and policies
 
--- Execute schema files in order:
--- 1. Admins
-\i '01_admins.sql'
+-- Create tables
+\i 01_admins.sql
+\i 02_capsules.sql
+\i 03_messages.sql
+\i 04_packs.sql
 
--- 2. Capsules
-\i '02_capsules.sql'
+-- Create credits system
+\i 06_credits_function.sql
+\i 07_credits_triggers.sql
+\i 08_credits_initialization.sql
 
--- 3. Messages
-\i '03_messages.sql'
-
--- 4. Packs
-\i '04_packs.sql'
+-- Initialize credits for existing admins (if any)
+SELECT public.initialize_all_admin_credits();
 
 -- Schema initialization complete
 SELECT 'Lumina Admin database schema initialized successfully!' as status; 

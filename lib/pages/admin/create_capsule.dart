@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../services/capsule_service.dart';
-import '../../models/capsule.dart';
-import 'dart:convert';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart'; // Added import for Supabase
+import 'dart:convert';
+import '../../services/capsule_service.dart';
+import '../../services/credits_service.dart';
 import '../../services/auth_service.dart';
+import '../../models/capsule.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class CreateCapsulePage extends StatefulWidget {
@@ -18,13 +20,14 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   final _familyEmailController = TextEditingController();
   final _dateOfBirthController = TextEditingController();
   final _dateOfDeathController = TextEditingController();
+
   DateTime? _scheduledDate;
   String? _selectedLanguage;
   bool _isLoading = false;
-  String? _errorMessage;
-  int _credits = 0;
   bool _loadingCredits = true;
-  bool _restoringSession = false;
+  String? _errorMessage;
+
+  int _availableCredits = 0;
 
   final List<String> _languages = [
     'English',
@@ -33,12 +36,6 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     'German',
     'Italian',
     'Portuguese',
-    'Dutch',
-    'Russian',
-    'Chinese',
-    'Japanese',
-    'Korean',
-    'Arabic',
     'Other'
   ];
 
@@ -49,15 +46,23 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   }
 
   Future<void> _loadCredits() async {
-    setState(() {
-      _loadingCredits = true;
-    });
-    // TODO: Replace with real API call to get credits
-    // For now, use dummy value
-    _credits = 2; // Example: fetch from Supabase
-    setState(() {
-      _loadingCredits = false;
-    });
+    try {
+      setState(() {
+        _loadingCredits = true;
+      });
+
+      final credits = await CreditsService.getAvailableCredits();
+
+      setState(() {
+        _availableCredits = credits;
+        _loadingCredits = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load credits: ${e.toString()}';
+        _loadingCredits = false;
+      });
+    }
   }
 
   @override
@@ -75,31 +80,51 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!_loadingCredits && _credits <= 0)
+              // Credits Display
+              if (!_loadingCredits) ...[
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.all(16),
                   margin: EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    border: Border.all(color: Colors.red.shade200),
+                    color: _availableCredits > 0
+                        ? Colors.green.shade50
+                        : Colors.red.shade50,
+                    border: Border.all(
+                      color: _availableCredits > 0
+                          ? Colors.green.shade200
+                          : Colors.red.shade200,
+                    ),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'No credits available. You need to buy more packs.',
-                        style: TextStyle(color: Colors.red.shade800),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed('/admin/buy_packs'),
-                        child: Text('Buy Packs'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Available Credits: $_availableCredits',
+                            style: TextStyle(
+                              color: _availableCredits > 0
+                                  ? Colors.green.shade800
+                                  : Colors.red.shade800,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (_availableCredits <= 0)
+                            TextButton(
+                              onPressed: () => context.go('/admin/buy_packs'),
+                              child: Text('Buy Packs'),
+                            ),
+                        ],
                       ),
                     ],
                   ),
                 ),
+              ],
+
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -243,9 +268,10 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
               SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: _isLoading || _loadingCredits || (_credits <= 0)
-                      ? null
-                      : _createCapsule,
+                  onPressed:
+                      _isLoading || _loadingCredits || (_availableCredits <= 0)
+                          ? null
+                          : _createCapsule,
                   child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
                       : Text('Create Capsule'),

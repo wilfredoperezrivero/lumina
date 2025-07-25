@@ -2,8 +2,12 @@ class Capsule {
   final String id;
   final String? adminId;
   final String? familyId;
-  final String? title;
+  final String? name;
   final String? description;
+  final String? dateOfBirth;
+  final String? dateOfDeath;
+  final String? language;
+  final String? image;
   final DateTime? expiresAt;
   final String? finalVideoUrl;
   final String? status;
@@ -15,8 +19,12 @@ class Capsule {
     required this.id,
     this.adminId,
     this.familyId,
-    this.title,
+    this.name,
     this.description,
+    this.dateOfBirth,
+    this.dateOfDeath,
+    this.language,
+    this.image,
     this.expiresAt,
     this.finalVideoUrl,
     this.status,
@@ -30,8 +38,12 @@ class Capsule {
       id: json['id'],
       adminId: json['admin_id'],
       familyId: json['family_id'],
-      title: json['title'],
+      name: json['name'],
       description: json['description'],
+      dateOfBirth: json['date_of_birth'],
+      dateOfDeath: json['date_of_death'],
+      language: json['language'],
+      image: json['image'],
       expiresAt: json['expires_at'] != null
           ? DateTime.tryParse(json['expires_at'])
           : null,
@@ -52,8 +64,12 @@ class Capsule {
       'id': id,
       'admin_id': adminId,
       'family_id': familyId,
-      'title': title,
+      'name': name,
       'description': description,
+      'date_of_birth': dateOfBirth,
+      'date_of_death': dateOfDeath,
+      'language': language,
+      'image': image,
       'expires_at': expiresAt?.toIso8601String(),
       'final_video_url': finalVideoUrl,
       'status': status,

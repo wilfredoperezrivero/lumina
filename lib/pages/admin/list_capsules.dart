@@ -161,118 +161,97 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
                                 final String familyEmail =
                                     capsule.familyEmail ?? '';
                                 return Card(
-                                  margin: EdgeInsets.only(bottom: 16),
-                                  child: ListTile(
-                                    contentPadding: EdgeInsets.all(16),
-                                    leading: CircleAvatar(
-                                      backgroundColor:
-                                          _getStatusColor(capsule.status ?? ''),
-                                      child: Icon(
-                                        _getStatusIcon(capsule.status ?? ''),
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      capsule.title ?? '(No Title)',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
-                                    ),
-                                    subtitle: Column(
+                                  margin: EdgeInsets.only(bottom: 8),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(12),
+                                    child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
+                                        // First line: Name and Status
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                capsule.name ?? '(No Name)',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: _getStatusColor(
+                                                    capsule.status ?? ''),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                capsule.status ?? 'Unknown',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                         SizedBox(height: 4),
+                                        // Second line: Description
                                         if (description.isNotEmpty)
                                           Text(
                                             description,
-                                            maxLines: 2,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall,
+                                            maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
-                                        if (familyEmail.isNotEmpty)
-                                          Row(
-                                            children: [
-                                              Icon(Icons.email, size: 16),
-                                              SizedBox(width: 4),
-                                              Text(
-                                                familyEmail,
-                                                style: TextStyle(fontSize: 12),
+                                        SizedBox(height: 4),
+                                        // Third line: Family Email and Edit Button
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                'Family: ${familyEmail.isNotEmpty ? familyEmail : 'Not assigned'}',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: Colors.grey[600],
+                                                      fontSize: 11,
+                                                    ),
                                               ),
-                                            ],
-                                          ),
-                                        if (capsule.expiresAt != null)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                top: 8.0, bottom: 4.0),
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.calendar_today,
-                                                    size: 16),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  'Expires: ${_formatDate(capsule.expiresAt!)}',
+                                            ),
+                                            ElevatedButton.icon(
+                                              onPressed: () =>
+                                                  _openCapsule(capsule),
+                                              icon: Icon(Icons.open_in_new,
+                                                  size: 14),
+                                              label: Text('Open',
                                                   style:
-                                                      TextStyle(fontSize: 12),
+                                                      TextStyle(fontSize: 12)),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.blue.shade600,
+                                                foregroundColor: Colors.white,
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4,
                                                 ),
-                                              ],
+                                                minimumSize: Size(0, 28),
+                                              ),
                                             ),
-                                          ),
-                                        Container(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: _getStatusColor(
-                                                    capsule.status ?? '')
-                                                .withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                            (capsule.status ?? '')
-                                                .toUpperCase(),
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: _getStatusColor(
-                                                  capsule.status ?? ''),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    trailing: PopupMenuButton<String>(
-                                      onSelected: (value) =>
-                                          _handleMenuAction(value, capsule),
-                                      itemBuilder: (context) => [
-                                        PopupMenuItem(
-                                          value: 'view',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.visibility),
-                                              SizedBox(width: 8),
-                                              Text('View Details'),
-                                            ],
-                                          ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'edit',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.edit),
-                                              SizedBox(width: 8),
-                                              Text('Edit'),
-                                            ],
-                                          ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'messages',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.message),
-                                              SizedBox(width: 8),
-                                              Text('View QR Code'),
-                                            ],
-                                          ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -323,14 +302,13 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
         // TODO: Navigate to capsule details page
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text('View details for ${capsule.title ?? '(No Title)'}')),
+              content: Text('View details for ${capsule.name ?? '(No Name)'}')),
         );
         break;
       case 'edit':
         // TODO: Navigate to edit capsule page
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Edit ${capsule.title ?? '(No Title)'}')),
+          SnackBar(content: Text('Edit ${capsule.name ?? '(No Name)'}')),
         );
         break;
       case 'messages':
@@ -338,9 +316,13 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content:
-                  Text('View messages for ${capsule.title ?? '(No Title)'}')),
+                  Text('View messages for ${capsule.name ?? '(No Name)'}')),
         );
         break;
     }
+  }
+
+  void _openCapsule(Capsule capsule) {
+    Navigator.pushNamed(context, '/admin/capsule_details', arguments: capsule);
   }
 }

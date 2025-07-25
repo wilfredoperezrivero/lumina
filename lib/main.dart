@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pages/auth/login.dart';
 import 'pages/admin/dashboard.dart';
 import 'pages/admin/create_capsule.dart';
+import 'pages/admin/edit_capsule.dart';
+import 'pages/admin/capsule_details.dart';
 import 'pages/admin/list_capsules.dart';
 import 'pages/admin/buy_packs.dart';
 import 'pages/admin/settings.dart';
@@ -59,6 +61,14 @@ GoRouter _router([String? initialRoute]) => GoRouter(
         GoRoute(
           path: '/admin/create_capsule',
           builder: (context, state) => CreateCapsulePage(),
+        ),
+        GoRoute(
+          path: '/admin/edit-capsule',
+          builder: (context, state) => EditCapsulePage(),
+        ),
+        GoRoute(
+          path: '/admin/capsule_details',
+          builder: (context, state) => CapsuleDetailsPage(),
         ),
         GoRoute(
           path: '/admin/list_capsules',

@@ -17,12 +17,31 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _familyEmailController = TextEditingController();
+  final _dateOfBirthController = TextEditingController();
+  final _dateOfDeathController = TextEditingController();
   DateTime? _scheduledDate;
+  String? _selectedLanguage;
   bool _isLoading = false;
   String? _errorMessage;
   int _credits = 0;
   bool _loadingCredits = true;
   bool _restoringSession = false;
+
+  final List<String> _languages = [
+    'English',
+    'Spanish',
+    'French',
+    'German',
+    'Italian',
+    'Portuguese',
+    'Dutch',
+    'Russian',
+    'Chinese',
+    'Japanese',
+    'Korean',
+    'Arabic',
+    'Other'
+  ];
 
   @override
   void initState() {
@@ -120,34 +139,107 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.email),
                 ),
+                keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a family email';
                   }
-                  if (!value.contains('@')) {
-                    return 'Please enter a valid email';
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                      .hasMatch(value)) {
+                    return 'Please enter a valid email address';
                   }
                   return null;
                 },
               ),
               SizedBox(height: 16),
-              ListTile(
-                leading: Icon(Icons.calendar_today),
-                title: Text('Scheduled Date (Optional)'),
-                subtitle: Text(_scheduledDate != null
-                    ? '${_scheduledDate!.day}/${_scheduledDate!.month}/${_scheduledDate!.year}'
-                    : 'No date set'),
-                trailing: IconButton(
-                  icon: Icon(Icons.clear),
-                  onPressed: _scheduledDate != null
-                      ? () {
-                          setState(() {
-                            _scheduledDate = null;
-                          });
-                        }
-                      : null,
+              // Date of Birth
+              InkWell(
+                onTap: () => _selectDateOfBirth(context),
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Date of Birth (Optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.cake),
+                  ),
+                  child: Text(
+                    _dateOfBirthController.text.isNotEmpty
+                        ? _dateOfBirthController.text
+                        : 'Select date of birth',
+                    style: TextStyle(
+                      color: _dateOfBirthController.text.isNotEmpty
+                          ? Colors.black
+                          : Colors.grey,
+                    ),
+                  ),
                 ),
+              ),
+              SizedBox(height: 16),
+              // Date of Death
+              InkWell(
+                onTap: () => _selectDateOfDeath(context),
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Date of Death (Optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.event),
+                  ),
+                  child: Text(
+                    _dateOfDeathController.text.isNotEmpty
+                        ? _dateOfDeathController.text
+                        : 'Select date of death',
+                    style: TextStyle(
+                      color: _dateOfDeathController.text.isNotEmpty
+                          ? Colors.black
+                          : Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              // Scheduled Date
+              InkWell(
                 onTap: () => _selectDate(context),
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Scheduled Date (Optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.schedule),
+                  ),
+                  child: Text(
+                    _scheduledDate != null
+                        ? '${_scheduledDate!.day}/${_scheduledDate!.month}/${_scheduledDate!.year}'
+                        : 'Select scheduled date',
+                    style: TextStyle(
+                      color:
+                          _scheduledDate != null ? Colors.black : Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              // Language Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedLanguage,
+                decoration: InputDecoration(
+                  labelText: 'Language (Optional)',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.language),
+                ),
+                items: _languages.map((String language) {
+                  return DropdownMenuItem<String>(
+                    value: language,
+                    child: Text(language),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedLanguage = newValue;
+                  });
+                },
+                validator: (value) {
+                  // Language is optional, so no validation needed
+                  return null;
+                },
               ),
               if (_loadingCredits) Center(child: CircularProgressIndicator()),
               SizedBox(height: 24),
@@ -193,6 +285,38 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     if (picked != null && picked != _scheduledDate) {
       setState(() {
         _scheduledDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectDateOfBirth(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate:
+          DateTime.tryParse(_dateOfBirthController.text) ?? DateTime.now(),
+      firstDate: DateTime(1900), // Example: 100 years ago
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _dateOfBirthController.text =
+            '${picked.day}/${picked.month}/${picked.year}';
+      });
+    }
+  }
+
+  Future<void> _selectDateOfDeath(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate:
+          DateTime.tryParse(_dateOfDeathController.text) ?? DateTime.now(),
+      firstDate: DateTime(1900), // Example: 100 years ago
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _dateOfDeathController.text =
+            '${picked.day}/${picked.month}/${picked.year}';
       });
     }
   }
@@ -246,8 +370,15 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
 
       // Create the capsule with admin_id as current user and family_id as new user
       final capsule = await CapsuleService.createCapsule(
-        title: _nameController.text,
+        name: _nameController.text,
         description: _descriptionController.text,
+        dateOfBirth: _dateOfBirthController.text.isNotEmpty
+            ? _dateOfBirthController.text
+            : null,
+        dateOfDeath: _dateOfDeathController.text.isNotEmpty
+            ? _dateOfDeathController.text
+            : null,
+        language: _selectedLanguage,
         adminId: adminUser.id,
         familyId: familyUserId,
         familyEmail: _familyEmailController.text,
@@ -277,6 +408,8 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     _nameController.dispose();
     _descriptionController.dispose();
     _familyEmailController.dispose();
+    _dateOfBirthController.dispose();
+    _dateOfDeathController.dispose();
     super.dispose();
   }
 }

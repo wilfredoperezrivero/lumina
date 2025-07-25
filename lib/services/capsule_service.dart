@@ -7,11 +7,14 @@ class CapsuleService {
 
   // Create a new capsule
   static Future<Capsule> createCapsule({
-    required String title,
+    required String name,
     required String description,
+    String? dateOfBirth,
+    String? dateOfDeath,
+    String? language,
+    String? image,
     required String adminId,
     String? familyId,
-    String? packId,
     DateTime? expiresAt,
     String? finalVideoUrl,
     String? status,
@@ -22,11 +25,14 @@ class CapsuleService {
     final response = await _supabase
         .from('capsules')
         .insert({
-          'title': title,
+          'name': name,
           'description': description,
+          if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
+          if (dateOfDeath != null) 'date_of_death': dateOfDeath,
+          if (language != null) 'language': language,
+          if (image != null) 'image': image,
           'admin_id': adminId,
           if (familyId != null) 'family_id': familyId,
-          if (packId != null) 'pack_id': packId,
           if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
           if (finalVideoUrl != null) 'final_video_url': finalVideoUrl,
           'status': status ?? 'active',
@@ -60,8 +66,10 @@ class CapsuleService {
     required String capsuleId,
     String? name,
     String? description,
+    String? dateOfBirth,
+    String? dateOfDeath,
+    String? language,
     DateTime? scheduledDate,
-    Map<String, dynamic>? settings,
   }) async {
     final user = AuthService.currentUser();
     if (user == null) throw Exception('User not authenticated');
@@ -79,9 +87,11 @@ class CapsuleService {
     final updateData = <String, dynamic>{};
     if (name != null) updateData['name'] = name;
     if (description != null) updateData['description'] = description;
+    if (dateOfBirth != null) updateData['date_of_birth'] = dateOfBirth;
+    if (dateOfDeath != null) updateData['date_of_death'] = dateOfDeath;
+    if (language != null) updateData['language'] = language;
     if (scheduledDate != null)
       updateData['scheduled_date'] = scheduledDate.toIso8601String();
-    if (settings != null) updateData['settings'] = settings;
 
     final response = await _supabase
         .from('capsules')

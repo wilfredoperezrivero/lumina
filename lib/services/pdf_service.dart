@@ -1,11 +1,13 @@
 import 'dart:typed_data';
 import 'dart:io';
+import 'dart:html' as html;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
+import 'package:flutter/foundation.dart';
 import 'settings_service.dart';
 
 class PdfService {
@@ -45,7 +47,8 @@ class PdfService {
 
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: pw.EdgeInsets.zero,
         build: (context) => pw.Stack(
           children: [
             // Original image as background
@@ -55,23 +58,21 @@ class PdfService {
                 fit: pw.BoxFit.contain,
               ),
             ),
-            // Logo overlay on top right
+            // Logo overlay at bottom
             if (logoImage != null)
               pw.Positioned(
-                top: 20,
-                right: 20,
+                bottom: 20,
+                right: 50,
                 child: pw.Container(
-                  padding: pw.EdgeInsets.all(8),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.white,
-                    borderRadius: pw.BorderRadius.circular(8),
-                    border: pw.Border.all(color: PdfColors.grey300, width: 1),
-                  ),
-                  child: pw.Image(
-                    logoImage,
-                    width: 80,
-                    height: 40,
-                    fit: pw.BoxFit.contain,
+                  width: 150,
+                  height: 150,
+                  child: pw.Center(
+                    child: pw.Image(
+                      logoImage,
+                      width: 150,
+                      height: 150,
+                      fit: pw.BoxFit.contain,
+                    ),
                   ),
                 ),
               ),
@@ -116,28 +117,22 @@ class PdfService {
 
     // Add logo overlay if available
     if (logoImage != null) {
-      // Resize logo to appropriate size (80x40 pixels)
+      // Calculate logo size (25% of image width)
+      final logoWidth = (resultImage.width * 0.25).round();
+      final logoHeight = (logoWidth * 0.5).round(); // Maintain aspect ratio
+
+      // Resize logo to appropriate size
       final resizedLogo = img.copyResize(
         logoImage,
-        width: 80,
-        height: 40,
+        width: logoWidth,
+        height: logoHeight,
         interpolation: img.Interpolation.linear,
       );
 
-      // Calculate position (top right corner)
-      final int x =
-          resultImage.width - resizedLogo.width - 20; // 20px from right edge
-      final int y = 20; // 20px from top
-
-      // Draw white background rectangle
-      img.fillRect(
-        resultImage,
-        x1: x - 8,
-        y1: y - 8,
-        x2: x + resizedLogo.width + 8,
-        y2: y + resizedLogo.height + 8,
-        color: img.ColorRgb8(255, 255, 255),
-      );
+      // Calculate position (right bottom, moved up a bit)
+      final int x = resultImage.width - logoWidth - 50; // 50px from right edge
+      final int y =
+          resultImage.height - logoHeight - 150; // 150px from bottom (moved up)
 
       // Draw logo
       img.compositeImage(resultImage, resizedLogo, dstX: x, dstY: y);
@@ -151,33 +146,58 @@ class PdfService {
   static Future<String> downloadPdf({
     required String language,
     String? logoUrl,
+    String? adminName,
   }) async {
     final pdfBytes = await addLogoToPdf(
       language: language,
       logoUrl: logoUrl,
     );
 
-    try {
-      // Try to get application documents directory
-      final directory = await getApplicationDocumentsDirectory();
-      final fileName = language == 'es' ? 'Folleto_ES.pdf' : 'Leaflet_EN.pdf';
-      final file = File('${directory.path}/$fileName');
+    if (kIsWeb) {
+      // For web, trigger download using browser
+      final baseFileName = language == 'es' ? 'Folleto_ES' : 'Leaflet_EN';
+      final fileName = adminName != null && adminName.isNotEmpty
+          ? '${adminName}_$baseFileName.pdf'
+          : '$baseFileName.pdf';
 
-      await file.writeAsBytes(pdfBytes);
-      return file.path;
-    } catch (e) {
-      print('Failed to get application documents directory: $e');
+      // Create blob URL and trigger download
+      final blob = html.Blob([pdfBytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', fileName)
+        ..click();
+      html.Url.revokeObjectUrl(url);
 
+      return 'Downloaded: $fileName';
+    } else {
       try {
-        // Fallback to current directory
-        final fileName = language == 'es' ? 'Folleto_ES.pdf' : 'Leaflet_EN.pdf';
-        final file = File(fileName);
+        // Try to get application documents directory
+        final directory = await getApplicationDocumentsDirectory();
+        final baseFileName = language == 'es' ? 'Folleto_ES' : 'Leaflet_EN';
+        final fileName = adminName != null && adminName.isNotEmpty
+            ? '${adminName}_$baseFileName.pdf'
+            : '$baseFileName.pdf';
+        final file = File('${directory.path}/$fileName');
 
         await file.writeAsBytes(pdfBytes);
         return file.path;
-      } catch (e2) {
-        print('Failed to save to current directory: $e2');
-        throw Exception('Failed to save PDF file: $e2');
+      } catch (e) {
+        print('Failed to get application documents directory: $e');
+
+        try {
+          // Fallback to current directory
+          final baseFileName = language == 'es' ? 'Folleto_ES' : 'Leaflet_EN';
+          final fileName = adminName != null && adminName.isNotEmpty
+              ? '${adminName}_$baseFileName.pdf'
+              : '$baseFileName.pdf';
+          final file = File(fileName);
+
+          await file.writeAsBytes(pdfBytes);
+          return file.path;
+        } catch (e2) {
+          print('Failed to save to current directory: $e2');
+          throw Exception('Failed to save PDF file: $e2');
+        }
       }
     }
   }
@@ -186,33 +206,58 @@ class PdfService {
   static Future<String> downloadPng({
     required String language,
     String? logoUrl,
+    String? adminName,
   }) async {
     final pngBytes = await addLogoToPng(
       language: language,
       logoUrl: logoUrl,
     );
 
-    try {
-      // Try to get application documents directory
-      final directory = await getApplicationDocumentsDirectory();
-      final fileName = language == 'es' ? 'Folleto_ES.png' : 'Leaflet_EN.png';
-      final file = File('${directory.path}/$fileName');
+    if (kIsWeb) {
+      // For web, trigger download using browser
+      final baseFileName = language == 'es' ? 'Folleto_ES' : 'Leaflet_EN';
+      final fileName = adminName != null && adminName.isNotEmpty
+          ? '${adminName}_$baseFileName.png'
+          : '$baseFileName.png';
 
-      await file.writeAsBytes(pngBytes);
-      return file.path;
-    } catch (e) {
-      print('Failed to get application documents directory: $e');
+      // Create blob URL and trigger download
+      final blob = html.Blob([pngBytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', fileName)
+        ..click();
+      html.Url.revokeObjectUrl(url);
 
+      return 'Downloaded: $fileName';
+    } else {
       try {
-        // Fallback to current directory
-        final fileName = language == 'es' ? 'Folleto_ES.png' : 'Leaflet_EN.png';
-        final file = File(fileName);
+        // Try to get application documents directory
+        final directory = await getApplicationDocumentsDirectory();
+        final baseFileName = language == 'es' ? 'Folleto_ES' : 'Leaflet_EN';
+        final fileName = adminName != null && adminName.isNotEmpty
+            ? '${adminName}_$baseFileName.png'
+            : '$baseFileName.png';
+        final file = File('${directory.path}/$fileName');
 
         await file.writeAsBytes(pngBytes);
         return file.path;
-      } catch (e2) {
-        print('Failed to save to current directory: $e2');
-        throw Exception('Failed to save PNG file: $e2');
+      } catch (e) {
+        print('Failed to get application documents directory: $e');
+
+        try {
+          // Fallback to current directory
+          final baseFileName = language == 'es' ? 'Folleto_ES' : 'Leaflet_EN';
+          final fileName = adminName != null && adminName.isNotEmpty
+              ? '${adminName}_$baseFileName.png'
+              : '$baseFileName.png';
+          final file = File(fileName);
+
+          await file.writeAsBytes(pngBytes);
+          return file.path;
+        } catch (e2) {
+          print('Failed to save to current directory: $e2');
+          throw Exception('Failed to save PNG file: $e2');
+        }
       }
     }
   }

@@ -54,6 +54,7 @@ class _MarketingPageState extends State<MarketingPage> {
       final filePath = await PdfService.downloadPdf(
         language: language,
         logoUrl: logoUrl,
+        adminName: _adminSettings?.name,
       );
 
       setState(() {
@@ -86,6 +87,7 @@ class _MarketingPageState extends State<MarketingPage> {
       final filePath = await PdfService.downloadPng(
         language: language,
         logoUrl: logoUrl,
+        adminName: _adminSettings?.name,
       );
 
       setState(() {
@@ -139,7 +141,7 @@ class _MarketingPageState extends State<MarketingPage> {
                           ),
                           SizedBox(height: 16),
                           Text(
-                            'Download marketing materials in different languages and formats. Your logo will be automatically added to the top right of each file.',
+                            'Download marketing materials in different languages and formats.',
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                           if (_adminSettings?.logoImage != null) ...[

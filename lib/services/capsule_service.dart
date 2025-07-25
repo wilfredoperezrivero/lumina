@@ -8,7 +8,6 @@ class CapsuleService {
   // Create a new capsule
   static Future<Capsule> createCapsule({
     required String name,
-    required String description,
     String? dateOfBirth,
     String? dateOfDeath,
     String? language,
@@ -26,7 +25,6 @@ class CapsuleService {
         .from('capsules')
         .insert({
           'name': name,
-          'description': description,
           if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
           if (dateOfDeath != null) 'date_of_death': dateOfDeath,
           if (language != null) 'language': language,
@@ -65,7 +63,6 @@ class CapsuleService {
   static Future<Capsule> updateCapsule({
     required String capsuleId,
     String? name,
-    String? description,
     String? dateOfBirth,
     String? dateOfDeath,
     String? language,
@@ -86,7 +83,6 @@ class CapsuleService {
 
     final updateData = <String, dynamic>{};
     if (name != null) updateData['name'] = name;
-    if (description != null) updateData['description'] = description;
     if (dateOfBirth != null) updateData['date_of_birth'] = dateOfBirth;
     if (dateOfDeath != null) updateData['date_of_death'] = dateOfDeath;
     if (language != null) updateData['language'] = language;

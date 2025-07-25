@@ -15,7 +15,6 @@ class CreateCapsulePage extends StatefulWidget {
 class _CreateCapsulePageState extends State<CreateCapsulePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
   final _familyEmailController = TextEditingController();
   final _dateOfBirthController = TextEditingController();
   final _dateOfDeathController = TextEditingController();
@@ -117,22 +116,6 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
               ),
               SizedBox(height: 16),
               TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
-                ),
-                maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              TextFormField(
                 controller: _familyEmailController,
                 decoration: InputDecoration(
                   labelText: 'Family Email',
@@ -144,7 +127,8 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a family email';
                   }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                  if (!RegExp(
+                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
                       .hasMatch(value)) {
                     return 'Please enter a valid email address';
                   }
@@ -343,7 +327,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
           'email': _familyEmailController.text,
           'password': password,
           'capsuleTitle': _nameController.text,
-          'capsuleDescription': _descriptionController.text,
+          'capsuleDescription': '', // Removed description
         }),
       );
 
@@ -371,7 +355,6 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
       // Create the capsule with admin_id as current user and family_id as new user
       final capsule = await CapsuleService.createCapsule(
         name: _nameController.text,
-        description: _descriptionController.text,
         dateOfBirth: _dateOfBirthController.text.isNotEmpty
             ? _dateOfBirthController.text
             : null,
@@ -406,7 +389,6 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
     _familyEmailController.dispose();
     _dateOfBirthController.dispose();
     _dateOfDeathController.dispose();

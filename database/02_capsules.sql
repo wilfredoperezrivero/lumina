@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS public.capsules (
     admin_id UUID,
     family_id UUID,
     name TEXT,
-    description TEXT,
     date_of_birth TEXT,
     date_of_death TEXT,
     language TEXT,

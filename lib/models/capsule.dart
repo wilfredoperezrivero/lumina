@@ -3,7 +3,6 @@ class Capsule {
   final String? adminId;
   final String? familyId;
   final String? name;
-  final String? description;
   final String? dateOfBirth;
   final String? dateOfDeath;
   final String? language;
@@ -20,7 +19,6 @@ class Capsule {
     this.adminId,
     this.familyId,
     this.name,
-    this.description,
     this.dateOfBirth,
     this.dateOfDeath,
     this.language,
@@ -39,7 +37,6 @@ class Capsule {
       adminId: json['admin_id'],
       familyId: json['family_id'],
       name: json['name'],
-      description: json['description'],
       dateOfBirth: json['date_of_birth'],
       dateOfDeath: json['date_of_death'],
       language: json['language'],
@@ -65,7 +62,6 @@ class Capsule {
       'admin_id': adminId,
       'family_id': familyId,
       'name': name,
-      'description': description,
       'date_of_birth': dateOfBirth,
       'date_of_death': dateOfDeath,
       'language': language,

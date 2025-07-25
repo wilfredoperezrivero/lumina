@@ -11,7 +11,6 @@ class EditCapsulePage extends StatefulWidget {
 class _EditCapsulePageState extends State<EditCapsulePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
   final _dateOfBirthController = TextEditingController();
   final _dateOfDeathController = TextEditingController();
   DateTime? _scheduledDate;
@@ -50,7 +49,6 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
     setState(() {
       _capsule = capsule;
       _nameController.text = capsule.name ?? '';
-      _descriptionController.text = capsule.description ?? '';
       _dateOfBirthController.text = capsule.dateOfBirth ?? '';
       _dateOfDeathController.text = capsule.dateOfDeath ?? '';
       _selectedLanguage = capsule.language;
@@ -94,22 +92,6 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter a capsule name';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16),
-                      TextFormField(
-                        controller: _descriptionController,
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.description),
-                        ),
-                        maxLines: 3,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a description';
                           }
                           return null;
                         },
@@ -294,7 +276,6 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
       final updatedCapsule = await CapsuleService.updateCapsule(
         capsuleId: _capsule!.id,
         name: _nameController.text,
-        description: _descriptionController.text,
         dateOfBirth: _dateOfBirthController.text.isNotEmpty
             ? _dateOfBirthController.text
             : null,
@@ -324,7 +305,6 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _descriptionController.dispose();
     _dateOfBirthController.dispose();
     _dateOfDeathController.dispose();
     super.dispose();

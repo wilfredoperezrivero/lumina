@@ -156,8 +156,6 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
                               itemCount: _filteredCapsules.length,
                               itemBuilder: (context, index) {
                                 final capsule = _filteredCapsules[index];
-                                final String description =
-                                    capsule.description ?? '';
                                 final String familyEmail =
                                     capsule.familyEmail ?? '';
                                 return Card(
@@ -206,18 +204,7 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
                                           ],
                                         ),
                                         SizedBox(height: 4),
-                                        // Second line: Description
-                                        if (description.isNotEmpty)
-                                          Text(
-                                            description,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        SizedBox(height: 4),
-                                        // Third line: Family Email and Edit Button
+                                        // Second line: Family Email and Edit Button
                                         Row(
                                           children: [
                                             Expanded(

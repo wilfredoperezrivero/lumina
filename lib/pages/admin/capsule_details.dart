@@ -102,16 +102,6 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
                       ),
                       SizedBox(height: 16),
 
-                      // Description
-                      if (_capsule!.description?.isNotEmpty == true) ...[
-                        _buildInfoCard(
-                          'Description',
-                          _capsule!.description!,
-                          Icons.description,
-                        ),
-                        SizedBox(height: 16),
-                      ],
-
                       // Dates
                       if (_capsule!.dateOfBirth?.isNotEmpty == true ||
                           _capsule!.dateOfDeath?.isNotEmpty == true) ...[

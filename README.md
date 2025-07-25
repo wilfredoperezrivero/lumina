@@ -16,6 +16,12 @@ A Flutter web application for managing Lumina Memorial capsules - digital time c
 - **Capsule Listing**: View and filter all capsules by status
 - **Responsive Dashboard**: Modern UI with responsive design
 
+### Admin Settings
+- **Profile Management**: Update business name, email, and phone number
+- **Logo Upload**: Upload and manage custom business logos
+- **Settings Storage**: Flexible JSONB storage for additional configuration
+- **Image Storage**: Secure logo storage in Supabase storage buckets
+
 ### E-commerce Integration
 - **Lemonsqueezy Integration**: Purchase capsule packs directly from the admin panel
 - **Credit Purchasing**: Buy packs of 5, 10, 20, 50, or 100 capsules
@@ -72,6 +78,16 @@ The application uses the following Supabase tables:
 - `status`: String
 - `scheduled_date`: Timestamp (nullable)
 - `created_at`: Timestamp
+
+#### admins
+- `admin_id`: UUID (primary key, references users.id)
+- `name`: String (nullable)
+- `email`: String (nullable)
+- `phone`: String (nullable)
+- `logo_image`: String (nullable)
+- `info`: JSONB (nullable)
+- `created_at`: Timestamp
+- `updated_at`: Timestamp
 
 ### Installation
 
@@ -156,6 +172,11 @@ lib/
 - Capsule CRUD operations
 - Family user creation
 - Credit management
+
+#### SettingsService
+- Admin settings management
+- Logo upload and storage
+- Profile information updates
 
 ## Contributing
 

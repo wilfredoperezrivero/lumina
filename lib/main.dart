@@ -24,6 +24,7 @@ import 'pages/admin/capsule_details.dart';
 // Family pages
 import 'pages/family/family_capsule.dart';
 import 'pages/family/family_messages.dart';
+import 'pages/public/capsule.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -95,6 +96,14 @@ GoRouter _router([String? initialRoute]) => GoRouter(
           path: '/admin/marketing',
           builder: (context, state) => MarketingPage(),
         ),
+        // Public routes (no authentication required) - must come before family routes
+        GoRoute(
+          path: '/capsule/:id',
+          builder: (context, state) {
+            final capsuleId = state.pathParameters['id']!;
+            return CapsulePage(capsuleId: capsuleId);
+          },
+        ),
         // Family routes
         GoRoute(
           path: '/family/capsule',
@@ -117,9 +126,13 @@ GoRouter _router([String? initialRoute]) => GoRouter(
 
         final isLoginRoute = state.uri.path == '/login';
         final isResetPasswordRoute = state.uri.path == '/reset-password';
+        final isPublicCapsuleRoute = state.uri.path.startsWith('/capsule/');
 
-        // If not authenticated and not on login/reset password, redirect to login
-        if (!isAuthenticated && !isLoginRoute && !isResetPasswordRoute) {
+        // If not authenticated and not on login/reset password/public capsule, redirect to login
+        if (!isAuthenticated &&
+            !isLoginRoute &&
+            !isResetPasswordRoute &&
+            !isPublicCapsuleRoute) {
           return '/login';
         }
 

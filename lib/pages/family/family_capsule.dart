@@ -49,8 +49,9 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
         throw Exception('No capsule assigned to this family');
       }
 
-      // Generate public URL
-      _publicUrl = 'https://capsule.luminamemorials.com/?c=${familyCapsule.id}';
+      // Generate public URL dynamically
+      final currentUrl = Uri.base.toString().replaceAll('/family/capsule', '');
+      _publicUrl = '$currentUrl/capsule/${familyCapsule.id}';
 
       setState(() {
         _capsule = familyCapsule;
@@ -100,7 +101,10 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
 
   Future<void> _openUrl(String url) async {
     if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
+      await launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

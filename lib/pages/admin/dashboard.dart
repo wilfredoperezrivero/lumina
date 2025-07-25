@@ -54,7 +54,7 @@ class AdminDashboardPage extends StatelessWidget {
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    int crossAxisCount = constraints.maxWidth < 800 ? 2 : 4;
+                    int crossAxisCount = constraints.maxWidth < 800 ? 2 : 5;
                     return GridView.count(
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 16,
@@ -87,6 +87,13 @@ class AdminDashboardPage extends StatelessWidget {
                           Icons.settings,
                           Colors.purple,
                           () => context.go('/admin/settings'),
+                        ),
+                        _buildActionCard(
+                          context,
+                          'Marketing',
+                          Icons.description,
+                          Colors.teal,
+                          () => context.go('/admin/marketing'),
                         ),
                       ],
                     );

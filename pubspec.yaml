@@ -20,9 +20,15 @@ dependencies:
   uni_links: ^0.5.1
   file_picker: ^6.1.1
   image: ^4.1.3
+  pdf: ^3.10.7
+  path_provider: ^2.1.2
 
 flutter:
   uses-material-design: true  
   assets:
     - assets/logo.png 
+    - assets/Folleto ES.pdf
+    - assets/Leaflet EN.pdf
+    - assets/Folleto ES.png
+    - assets/Leaflet EN.png
     - .env

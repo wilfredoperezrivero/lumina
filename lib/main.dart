@@ -8,6 +8,7 @@ import 'pages/admin/create_capsule.dart';
 import 'pages/admin/list_capsules.dart';
 import 'pages/admin/buy_packs.dart';
 import 'pages/admin/settings.dart';
+import 'pages/admin/marketing.dart';
 import 'services/auth_service.dart';
 import 'pages/auth/reset_password.dart';
 import 'package:uni_links/uni_links.dart';
@@ -70,6 +71,10 @@ GoRouter _router([String? initialRoute]) => GoRouter(
         GoRoute(
           path: '/admin/settings',
           builder: (context, state) => SettingsPage(),
+        ),
+        GoRoute(
+          path: '/admin/marketing',
+          builder: (context, state) => MarketingPage(),
         ),
         GoRoute(
           path: '/reset-password',

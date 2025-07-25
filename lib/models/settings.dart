@@ -3,6 +3,9 @@ class Settings {
   final String? name;
   final String? email;
   final String? phone;
+  final String? contactName;
+  final String? address;
+  final String? language;
   final String? logoImage;
   final Map<String, dynamic>? info;
   final DateTime? createdAt;
@@ -13,6 +16,9 @@ class Settings {
     this.name,
     this.email,
     this.phone,
+    this.contactName,
+    this.address,
+    this.language,
     this.logoImage,
     this.info,
     this.createdAt,
@@ -25,6 +31,9 @@ class Settings {
       name: json['name'],
       email: json['email'],
       phone: json['phone'],
+      contactName: json['contact_name'],
+      address: json['address'],
+      language: json['language'],
       logoImage: json['logo_image'],
       info:
           json['info'] != null ? Map<String, dynamic>.from(json['info']) : null,
@@ -43,6 +52,9 @@ class Settings {
       if (name != null) 'name': name,
       if (email != null) 'email': email,
       if (phone != null) 'phone': phone,
+      if (contactName != null) 'contact_name': contactName,
+      if (address != null) 'address': address,
+      if (language != null) 'language': language,
       if (logoImage != null) 'logo_image': logoImage,
       if (info != null) 'info': info,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
@@ -55,6 +67,9 @@ class Settings {
     String? name,
     String? email,
     String? phone,
+    String? contactName,
+    String? address,
+    String? language,
     String? logoImage,
     Map<String, dynamic>? info,
     DateTime? createdAt,
@@ -65,6 +80,9 @@ class Settings {
       name: name ?? this.name,
       email: email ?? this.email,
       phone: phone ?? this.phone,
+      contactName: contactName ?? this.contactName,
+      address: address ?? this.address,
+      language: language ?? this.language,
       logoImage: logoImage ?? this.logoImage,
       info: info ?? this.info,
       createdAt: createdAt ?? this.createdAt,

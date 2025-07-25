@@ -15,6 +15,8 @@ class _SettingsPageState extends State<SettingsPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _contactNameController = TextEditingController();
+  final _addressController = TextEditingController();
 
   Settings? _currentSettings;
   bool _isLoading = true;
@@ -23,6 +25,23 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _logoUrl;
   Uint8List? _selectedLogoBytes;
   String? _selectedLogoFileName;
+  String? _selectedLanguage;
+
+  final List<String> _languages = [
+    'English',
+    'Spanish',
+    'French',
+    'German',
+    'Italian',
+    'Portuguese',
+    'Dutch',
+    'Russian',
+    'Chinese',
+    'Japanese',
+    'Korean',
+    'Arabic',
+    'Other'
+  ];
 
   @override
   void initState() {
@@ -44,6 +63,9 @@ class _SettingsPageState extends State<SettingsPage> {
           _nameController.text = settings.name ?? '';
           _emailController.text = settings.email ?? '';
           _phoneController.text = settings.phone ?? '';
+          _contactNameController.text = settings.contactName ?? '';
+          _addressController.text = settings.address ?? '';
+          _selectedLanguage = settings.language;
           _logoUrl = settings.logoImage;
         }
         _isLoading = false;
@@ -104,6 +126,9 @@ class _SettingsPageState extends State<SettingsPage> {
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
+        contactName: _contactNameController.text.trim(),
+        address: _addressController.text.trim(),
+        language: _selectedLanguage,
         logoImage: logoImageUrl,
         info: _currentSettings?.info ?? {},
         createdAt: _currentSettings?.createdAt,
@@ -208,6 +233,45 @@ class _SettingsPageState extends State<SettingsPage> {
                                 prefixIcon: Icon(Icons.phone),
                               ),
                               keyboardType: TextInputType.phone,
+                            ),
+                            SizedBox(height: 16),
+                            TextFormField(
+                              controller: _contactNameController,
+                              decoration: InputDecoration(
+                                labelText: 'Contact Name',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.person),
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            TextFormField(
+                              controller: _addressController,
+                              decoration: InputDecoration(
+                                labelText: 'Address',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.location_on),
+                              ),
+                              maxLines: 3,
+                            ),
+                            SizedBox(height: 16),
+                            DropdownButtonFormField<String>(
+                              value: _selectedLanguage,
+                              decoration: InputDecoration(
+                                labelText: 'Language',
+                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(Icons.language),
+                              ),
+                              items: _languages.map((String language) {
+                                return DropdownMenuItem<String>(
+                                  value: language,
+                                  child: Text(language),
+                                );
+                              }).toList(),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedLanguage = newValue;
+                                });
+                              },
                             ),
                           ],
                         ),
@@ -360,6 +424,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _contactNameController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 }

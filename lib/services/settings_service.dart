@@ -86,16 +86,22 @@ class SettingsService {
     final image = img.decodeImage(imageBytes);
     if (image == null) throw Exception('Failed to decode image');
 
-    // Resize if too large (max 512x512 for logos)
+    // Resize if too large (max 512px on longest side, maintaining aspect ratio)
     final resizedImage = image.width > 512 || image.height > 512
-        ? img.copyResize(image,
-            width: 512, height: 512, interpolation: img.Interpolation.linear)
+        ? img.copyResize(
+            image,
+            width: image.width > image.height ? 512 : null,
+            height: image.height > image.width ? 512 : null,
+            interpolation: img.Interpolation.linear,
+          )
         : image;
 
     // Encode as PNG with optimization
     final pngBytes = Uint8List.fromList(img.encodePng(resizedImage));
 
-    final filePath = 'logos/${user.id}.png';
+    // Generate filename with timestamp
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final filePath = 'logos/${user.id}_$timestamp.png';
 
     await _client.storage.from('media').uploadBinary(filePath, pngBytes);
 

@@ -50,7 +50,7 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
       }
 
       // Generate public URL
-      _publicUrl = 'https://capsule.luminamemorials.com/${familyCapsule.id}';
+      _publicUrl = 'https://capsule.luminamemorials.com/?c=${familyCapsule.id}';
 
       setState(() {
         _capsule = familyCapsule;

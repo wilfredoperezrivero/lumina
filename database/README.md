@@ -24,11 +24,6 @@ This directory contains the database schema files for the Lumina Admin applicati
    - Manages capsule credits for admins
    - Payment status tracking
 
-5. **`05_storage.sql`** - Storage bucket configuration
-   - Admin asset storage (logos)
-   - User-specific folder structure
-   - Security policies for file access
-
 ### Master Files
 
 - **`00_init.sql`** - Master initialization script
@@ -53,10 +48,11 @@ This directory contains the database schema files for the Lumina Admin applicati
 ```
 
 ### Storage Setup
-The storage configuration in `05_storage.sql` needs to be run manually in the Supabase dashboard:
-1. Create storage bucket named `admin-assets`
-2. Set bucket to public
-3. Apply the storage policies
+Create a storage bucket named `media` in the Supabase dashboard:
+1. Go to Storage in Supabase dashboard
+2. Create new bucket named `media`
+3. Set bucket to public
+4. The app will handle file uploads automatically
 
 ## Schema Overview
 

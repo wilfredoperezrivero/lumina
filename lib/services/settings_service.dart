@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/settings.dart';
 import 'dart:typed_data';
+import 'package:image/image.dart' as img;
 
 class SettingsService {
   static final SupabaseClient _client = Supabase.instance.client;
@@ -77,20 +78,29 @@ class SettingsService {
   }
 
   // Upload logo image to Supabase storage
-  static Future<String> uploadLogoImage(
-      Uint8List imageBytes, String fileName) async {
+  static Future<String> uploadLogoImage(Uint8List imageBytes) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
-    final filePath = 'logos/${user.id}/$fileName';
+    // Convert image to optimized PNG format
+    final image = img.decodeImage(imageBytes);
+    if (image == null) throw Exception('Failed to decode image');
 
-    await _client.storage
-        .from('admin-assets')
-        .uploadBinary(filePath, imageBytes);
+    // Resize if too large (max 512x512 for logos)
+    final resizedImage = image.width > 512 || image.height > 512
+        ? img.copyResize(image,
+            width: 512, height: 512, interpolation: img.Interpolation.linear)
+        : image;
+
+    // Encode as PNG with optimization
+    final pngBytes = Uint8List.fromList(img.encodePng(resizedImage));
+
+    final filePath = 'logos/${user.id}.png';
+
+    await _client.storage.from('media').uploadBinary(filePath, pngBytes);
 
     // Get public URL
-    final publicUrl =
-        _client.storage.from('admin-assets').getPublicUrl(filePath);
+    final publicUrl = _client.storage.from('media').getPublicUrl(filePath);
 
     return publicUrl;
   }
@@ -100,6 +110,6 @@ class SettingsService {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
-    await _client.storage.from('admin-assets').remove([imagePath]);
+    await _client.storage.from('media').remove([imagePath]);
   }
 }

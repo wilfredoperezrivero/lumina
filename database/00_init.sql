@@ -15,8 +15,5 @@
 -- 4. Packs
 \i '04_packs.sql'
 
--- 5. Storage Configuration (commented out - run manually in Supabase dashboard)
--- \i '05_storage.sql'
-
 -- Schema initialization complete
 SELECT 'Lumina Admin database schema initialized successfully!' as status; 

@@ -92,10 +92,9 @@ class _SettingsPageState extends State<SettingsPage> {
       String? logoImageUrl = _logoUrl;
 
       // Upload new logo if selected
-      if (_selectedLogoBytes != null && _selectedLogoFileName != null) {
+      if (_selectedLogoBytes != null) {
         logoImageUrl = await SettingsService.uploadLogoImage(
           _selectedLogoBytes!,
-          _selectedLogoFileName!,
         );
       }
 

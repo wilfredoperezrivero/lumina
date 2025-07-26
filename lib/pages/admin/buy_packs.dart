@@ -1,18 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
+import '../../services/admin_service.dart';
 
-class BuyPacksPage extends StatelessWidget {
+class BuyPacksPage extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
+  _BuyPacksPageState createState() => _BuyPacksPageState();
+}
+
+class _BuyPacksPageState extends State<BuyPacksPage> {
+  String? adminName;
+  String? adminEmail;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAdminData();
+  }
+
+  Future<void> _loadAdminData() async {
+    try {
+      final name = await AdminService.getCurrentAdminName();
+      final email = await AdminService.getCurrentAdminEmail();
+
+      setState(() {
+        adminName = name;
+        adminEmail = email;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading admin data: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  String buildLemonSqueezyUrl() {
     final userId = AuthService.currentUser()?.id;
-    String buildLemonSqueezyUrl() {
-      final base =
-          'https://luminamemorials.lemonsqueezy.com/buy/5a9d4848-1038-48ae-ba71-9c81412c9789';
-      if (userId == null) return base;
-      return '$base?checkout[custom][admin_id]=$userId';
+    final base =
+        'https://luminamemorials.lemonsqueezy.com/buy/5a9d4848-1038-48ae-ba71-9c81412c9789';
+
+    if (userId == null) return base;
+
+    final params = <String>[];
+    params.add('checkout[custom][admin_id]=$userId');
+
+    if (adminEmail != null && adminEmail!.isNotEmpty) {
+      params.add('checkout[email]=${Uri.encodeComponent(adminEmail!)}');
     }
 
+    final name = adminName ?? 'Admin User';
+    if (name.isNotEmpty) {
+      params.add('checkout[name]=${Uri.encodeComponent(name)}');
+    }
+
+    return '$base?${params.join('&')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final packs = [
       {
         'title': 'Pack of 5 capsules',
@@ -56,90 +104,94 @@ class BuyPacksPage extends StatelessWidget {
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Text(
-            'Get Lumina in packs tailored to your needs — from 5 to 100 capsules. For high volumes or continuous integration, contact us for a custom proposal.',
-            style: TextStyle(fontSize: 16),
-          ),
-          SizedBox(height: 32),
-          Card(
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Available Packs',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                  SizedBox(height: 16),
-                  ...packs
-                      .map((pack) => _PackListItem(
-                            title: pack['title'] as String,
-                            description: pack['description'] as String,
-                            price: pack['price'] as String,
-                            capsules: pack['capsules'] as int,
-                          ))
-                      .toList(),
-                  SizedBox(height: 24),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final url = Uri.parse(buildLemonSqueezyUrl());
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url,
-                              mode: LaunchMode.externalApplication);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
-                        foregroundColor: Colors.white,
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        textStyle: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      child: Text('Buy Packs'),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                Text(
+                  'Get Lumina in packs tailored to your needs — from 5 to 100 capsules. For high volumes or continuous integration, contact us for a custom proposal.',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(height: 32),
+                Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Available Packs',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 20),
+                        ),
+                        SizedBox(height: 16),
+                        ...packs
+                            .map((pack) => _PackListItem(
+                                  title: pack['title'] as String,
+                                  description: pack['description'] as String,
+                                  price: pack['price'] as String,
+                                  capsules: pack['capsules'] as int,
+                                ))
+                            .toList(),
+                        SizedBox(height: 24),
+                        Center(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final url = Uri.parse(buildLemonSqueezyUrl());
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url,
+                                    mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade700,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 16),
+                              textStyle: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            child: Text('Buy Packs'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                SizedBox(height: 32),
+                Card(
+                  color: Colors.yellow[50],
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Packs +250',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Need higher volume or continuous integration? Get in touch and unlock discounts of up to 50%.',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: () {
+                            // TODO: Add contact action
+                          },
+                          child: Text('Contact Us'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          SizedBox(height: 32),
-          Card(
-            color: Colors.yellow[50],
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Packs +250',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Need higher volume or continuous integration? Get in touch and unlock discounts of up to 50%.',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () {
-                      // TODO: Add contact action
-                    },
-                    child: Text('Contact Us'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -11,32 +11,23 @@ if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
   exit 1
 fi
 
+# Set the path to test1.json
+TEST_JSON_PATH="supabase/functions/lemonsqueezy-webhook/test1.json"
+if [ ! -f "$TEST_JSON_PATH" ]; then
+  echo "$TEST_JSON_PATH file not found."
+  exit 1
+fi
+
 # Set the function endpoint
 FUNCTION_URL="$SUPABASE_URL/functions/v1/lemonsqueezy-webhook"
 
-# Example LemonSqueezy webhook payload (edit as needed)
-read -r -d '' PAYLOAD << EOM
-{
-  "meta": {
-    "event_name": "order_created"
-  },
-  "data": {
-    "id": 12345,
-    "attributes": {
-      "name": "Sample Pack",
-      "price": 1999
-    }
-  }
-}
-EOM
-
 # Print for debugging
 echo "POST $FUNCTION_URL"
-echo "Authorization: Bearer $SUPABASE_ANON_KEY"
-echo "$PAYLOAD"
+echo "Using payload from $TEST_JSON_PATH:"
+cat "$TEST_JSON_PATH"
+echo ""
 
-# Call the function using curl
+# Call the function using curl with test1.json
 curl -X POST "$FUNCTION_URL" \
-  -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
   -H "Content-Type: application/json" \
-  -d "$PAYLOAD" 
+  -d @"$TEST_JSON_PATH" 

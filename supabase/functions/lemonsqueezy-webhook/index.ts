@@ -54,6 +54,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: 'Failed to save payment log' }), { status: 500, headers: corsHeaders });
   }
 
+  return new Response(JSON.stringify({ success: true, data: logResponse }), { status: 200, headers: corsHeaders });
+
   const logData = await logResponse.json();
   const paymentLogId = logData[0]?.id;
 

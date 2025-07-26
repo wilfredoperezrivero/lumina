@@ -1,1 +1,1 @@
-supabase functions deploy lemonsqueezy-webhook --project-ref honbdlyinaybyojfiihu
+supabase functions deploy lemonsqueezy-webhook --project-ref honbdlyinaybyojfiihu --no-verify-jwt

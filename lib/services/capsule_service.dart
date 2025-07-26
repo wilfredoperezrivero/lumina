@@ -97,6 +97,15 @@ class CapsuleService {
     }).eq('id', capsuleId);
   }
 
+  // Get capsule by ID (public access)
+  static Future<Capsule> getCapsuleById(String capsuleId) async {
+    final response =
+        await _supabase.from('capsules').select().eq('id', capsuleId).single();
+
+    if (response == null) throw Exception('Capsule not found');
+    return Capsule.fromJson(response);
+  }
+
   // Update capsule
   static Future<Capsule> updateCapsule({
     required String capsuleId,

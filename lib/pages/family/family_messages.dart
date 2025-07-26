@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/capsule.dart';
 import '../../services/capsule_service.dart';
 import '../../services/message_service.dart';
@@ -118,6 +119,19 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
                       ),
                     ),
                   ),
+                  SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _openAudio(message.contentAudioUrl!),
+                    icon: Icon(Icons.play_arrow, size: 16),
+                    label: Text('Play'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      minimumSize: Size(0, 32),
+                    ),
+                  ),
                 ],
               ),
               SizedBox(height: 8),
@@ -136,6 +150,19 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
                       ),
                     ),
                   ),
+                  SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _openVideo(message.contentVideoUrl!),
+                    icon: Icon(Icons.play_arrow, size: 16),
+                    label: Text('Play'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      minimumSize: Size(0, 32),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -148,6 +175,52 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
   String _formatDate(DateTime? date) {
     if (date == null) return 'Unknown date';
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Future<void> _openVideo(String videoUrl) async {
+    try {
+      final uri = Uri.parse(videoUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open video'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error opening video: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openAudio(String audioUrl) async {
+    try {
+      final uri = Uri.parse(audioUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open audio'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error opening audio: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

@@ -1,0 +1,1 @@
+supabase functions deploy lemonsqueezy-webhook --project-ref honbdlyinaybyojfiihu

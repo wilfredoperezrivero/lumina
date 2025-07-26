@@ -28,8 +28,6 @@ flutter:
   uses-material-design: true  
   assets:
     - assets/logo.png 
-    - assets/Folleto ES.pdf
-    - assets/Leaflet EN.pdf
     - assets/Folleto ES.png
     - assets/Leaflet EN.png
     - .env

@@ -26,6 +26,7 @@ class MessageService {
     String? contentText,
     String? contentAudioUrl,
     String? contentVideoUrl,
+    String? contentImageUrl,
     String? contributorName,
     String? contributorEmail,
   }) async {
@@ -37,6 +38,7 @@ class MessageService {
             'content_text': contentText,
             'content_audio_url': contentAudioUrl,
             'content_video_url': contentVideoUrl,
+            'content_image_url': contentImageUrl,
             'contributor_name': contributorName,
             'contributor_email': contributorEmail,
             'submitted_at': DateTime.now().toIso8601String(),

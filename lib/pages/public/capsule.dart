@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import '../../models/capsule.dart';
 import '../../services/capsule_service.dart';
 import '../../services/media_upload_service.dart';
@@ -21,6 +23,7 @@ class _CapsulePageState extends State<CapsulePage> {
   bool _isUploadingVideo = false;
   bool _isUploadingAudio = false;
   bool _isRecordingAudio = false;
+  bool _isUploadingImage = false;
   bool _messageSubmitted = false;
 
   // Message form controllers
@@ -31,6 +34,7 @@ class _CapsulePageState extends State<CapsulePage> {
   // Uploaded media URLs
   String? _uploadedVideoUrl;
   String? _uploadedAudioUrl;
+  String? _uploadedImageUrl;
 
   @override
   void initState() {
@@ -107,6 +111,92 @@ class _CapsulePageState extends State<CapsulePage> {
     } finally {
       setState(() {
         _isUploadingVideo = false;
+      });
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    setState(() {
+      _isUploadingImage = true;
+    });
+
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final pickedFile = result.files.first;
+
+        // Check if file path is available
+        if (pickedFile.path == null) {
+          throw Exception('Could not access file path. Please try again.');
+        }
+
+        final file = File(pickedFile.path!);
+        final fileName = pickedFile.name;
+
+        print('Selected file: $fileName');
+        print('File path: ${pickedFile.path}');
+
+        // Upload image to Supabase storage
+        String imageUrl;
+        try {
+          imageUrl = await MediaUploadService.uploadImage(
+              file, fileName, widget.capsuleId);
+        } catch (e) {
+          print('Primary upload method failed, trying web method: $e');
+          // Try alternative web method as fallback
+          final webImageUrl =
+              await MediaUploadService.uploadImageWeb(widget.capsuleId);
+          if (webImageUrl != null) {
+            imageUrl = webImageUrl;
+          } else {
+            throw Exception('Both upload methods failed. Please try again.');
+          }
+        }
+
+        setState(() {
+          _uploadedImageUrl = imageUrl;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Image uploaded successfully!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else {
+        // User cancelled file picker
+        print('File picker cancelled or no file selected');
+      }
+    } catch (e) {
+      print('Image upload error in UI: $e');
+      String errorMessage = 'Error uploading image';
+
+      if (e.toString().contains('File too large')) {
+        errorMessage =
+            'Image file is too large. Please select a smaller image (max 10MB).';
+      } else if (e.toString().contains('File does not exist')) {
+        errorMessage = 'Could not access the selected file. Please try again.';
+      } else if (e.toString().contains('permission')) {
+        errorMessage = 'Permission denied. Please allow access to your photos.';
+      } else {
+        errorMessage = 'Error uploading image: ${e.toString()}';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 5),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isUploadingImage = false;
       });
     }
   }
@@ -206,11 +296,12 @@ class _CapsulePageState extends State<CapsulePage> {
     final hasText = _messageController.text.trim().isNotEmpty;
     final hasVideo = _uploadedVideoUrl != null;
     final hasAudio = _uploadedAudioUrl != null;
+    final hasImage = _uploadedImageUrl != null;
 
-    if (!hasText && !hasVideo && !hasAudio) {
+    if (!hasText && !hasVideo && !hasAudio && !hasImage) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please provide a message, video, or audio'),
+          content: Text('Please provide a message, video, audio, or image'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -231,6 +322,7 @@ class _CapsulePageState extends State<CapsulePage> {
         contributorEmail: null, // No email field
         contentAudioUrl: hasAudio ? _uploadedAudioUrl : null,
         contentVideoUrl: hasVideo ? _uploadedVideoUrl : null,
+        contentImageUrl: hasImage ? _uploadedImageUrl : null,
       );
 
       // Clear form and uploaded media
@@ -239,6 +331,7 @@ class _CapsulePageState extends State<CapsulePage> {
       setState(() {
         _uploadedVideoUrl = null;
         _uploadedAudioUrl = null;
+        _uploadedImageUrl = null;
         _messageSubmitted = true;
       });
 
@@ -500,40 +593,115 @@ class _CapsulePageState extends State<CapsulePage> {
               ),
             ),
             SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildUploadButton(
-                    icon: Icons.videocam,
-                    label: 'Upload Video',
-                    color: Colors.red,
-                    isLoading: _isUploadingVideo,
-                    onPressed: _uploadVideo,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _buildUploadButton(
-                    icon: Icons.audiotrack,
-                    label: 'Upload Audio',
-                    color: Colors.blue,
-                    isLoading: _isUploadingAudio,
-                    onPressed: _uploadAudio,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _buildUploadButton(
-                    icon: Icons.mic,
-                    label: 'Record Audio',
-                    color: Colors.green,
-                    isLoading: _isRecordingAudio,
-                    onPressed: _recordAudio,
-                  ),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Use 2 buttons per row on small screens (width < 600)
+                final isSmallScreen = constraints.maxWidth < 600;
+
+                if (isSmallScreen) {
+                  // 2 buttons per row layout
+                  return Column(
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildUploadButton(
+                              icon: Icons.image,
+                              label: 'Upload Image',
+                              color: Colors.green,
+                              isLoading: _isUploadingImage,
+                              onPressed: _uploadImage,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: _buildUploadButton(
+                              icon: Icons.videocam,
+                              label: 'Upload Video',
+                              color: Colors.red,
+                              isLoading: _isUploadingVideo,
+                              onPressed: _uploadVideo,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildUploadButton(
+                              icon: Icons.audiotrack,
+                              label: 'Upload Audio',
+                              color: Colors.blue,
+                              isLoading: _isUploadingAudio,
+                              onPressed: _uploadAudio,
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: _buildUploadButton(
+                              icon: Icons.mic,
+                              label: 'Record Audio',
+                              color: Colors.orange,
+                              isLoading: _isRecordingAudio,
+                              onPressed: _recordAudio,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                } else {
+                  // 4 buttons in a single row for larger screens
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _buildUploadButton(
+                          icon: Icons.image,
+                          label: 'Upload Image',
+                          color: Colors.green,
+                          isLoading: _isUploadingImage,
+                          onPressed: _uploadImage,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _buildUploadButton(
+                          icon: Icons.videocam,
+                          label: 'Upload Video',
+                          color: Colors.red,
+                          isLoading: _isUploadingVideo,
+                          onPressed: _uploadVideo,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _buildUploadButton(
+                          icon: Icons.audiotrack,
+                          label: 'Upload Audio',
+                          color: Colors.blue,
+                          isLoading: _isUploadingAudio,
+                          onPressed: _uploadAudio,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _buildUploadButton(
+                          icon: Icons.mic,
+                          label: 'Record Audio',
+                          color: Colors.orange,
+                          isLoading: _isRecordingAudio,
+                          onPressed: _recordAudio,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+              },
             ),
-            if (_uploadedVideoUrl != null || _uploadedAudioUrl != null) ...[
+            if (_uploadedVideoUrl != null ||
+                _uploadedAudioUrl != null ||
+                _uploadedImageUrl != null) ...[
               SizedBox(height: 16),
               _buildUploadedMediaPreview(),
             ],
@@ -622,6 +790,32 @@ class _CapsulePageState extends State<CapsulePage> {
                   onPressed: () {
                     setState(() {
                       _uploadedVideoUrl = null;
+                    });
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(),
+                ),
+              ],
+            ),
+          if (_uploadedImageUrl != null)
+            Row(
+              children: [
+                Icon(Icons.image, size: 16, color: Colors.green[600]),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Image uploaded',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, size: 16),
+                  onPressed: () {
+                    setState(() {
+                      _uploadedImageUrl = null;
                     });
                   },
                   padding: EdgeInsets.zero,

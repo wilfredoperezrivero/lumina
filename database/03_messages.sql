@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
     content_text TEXT NULL,
     content_audio_url TEXT NULL,
     content_video_url TEXT NULL,
+    content_image_url TEXT NULL,
     submitted_at TIMESTAMP WITHOUT TIME ZONE NULL DEFAULT NOW(),
     hidden BOOLEAN NULL DEFAULT false,
     contributor_name TEXT NULL,

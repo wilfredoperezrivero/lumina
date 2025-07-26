@@ -55,18 +55,88 @@ class MediaUploadService {
     }
   }
 
-  static Future<void> submitMessage({
-    required String capsuleId,
-    String? text,
-    String? audioUrl,
-    String? videoUrl,
-  }) async {
-    await Supabase.instance.client.from('messages').insert({
-      'capsule_id': capsuleId,
-      'content_text': text,
-      'content_audio_url': audioUrl,
-      'content_video_url': videoUrl,
-      'submitted_at': DateTime.now().toIso8601String(),
-    });
+  static Future<String> uploadImage(
+      File file, String fileName, String capsuleId) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final path = 'c/$capsuleId/${timestamp}_$fileName';
+    final storage = Supabase.instance.client.storage;
+
+    try {
+      // Check if file exists
+      if (!await file.exists()) {
+        throw Exception('File does not exist: ${file.path}');
+      }
+
+      // Check file size (limit to 10MB)
+      final fileSize = await file.length();
+      if (fileSize > 10 * 1024 * 1024) {
+        throw Exception(
+            'File too large: ${(fileSize / 1024 / 1024).toStringAsFixed(2)}MB (max 10MB)');
+      }
+
+      print('Uploading image: ${file.path}');
+      print('File size: ${(fileSize / 1024).toStringAsFixed(2)}KB');
+      print('Upload path: $path');
+
+      final bytes = await file.readAsBytes();
+      print('Bytes loaded: ${bytes.length}');
+
+      // Try upload with error details
+      try {
+        final upload = await storage.from('media').uploadBinary(path, bytes);
+        print('Upload successful: $upload');
+      } catch (uploadError) {
+        print('Supabase upload error: $uploadError');
+        throw Exception('Supabase upload failed: $uploadError');
+      }
+
+      final publicUrl = storage.from('media').getPublicUrl(path);
+      print('Public URL: $publicUrl');
+
+      return publicUrl;
+    } catch (e) {
+      print('Image upload error: $e');
+      throw Exception('Failed to upload image: ${e.toString()}');
+    }
+  }
+
+  // Alternative method for web that uses pickAndUploadFile approach
+  static Future<String?> uploadImageWeb(String capsuleId) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return null;
+      }
+
+      final file = result.files.first;
+      if (file.bytes == null) {
+        throw Exception('Could not read file bytes. File may be too large.');
+      }
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '${timestamp}_${file.name}';
+      final path = 'c/$capsuleId/$fileName';
+      final storage = Supabase.instance.client.storage;
+
+      print('Uploading image via web method: ${file.name}');
+      print('File size: ${(file.bytes!.length / 1024).toStringAsFixed(2)}KB');
+      print('Upload path: $path');
+
+      final upload =
+          await storage.from('media').uploadBinary(path, file.bytes!);
+      print('Upload successful: $upload');
+
+      final publicUrl = storage.from('media').getPublicUrl(path);
+      print('Public URL: $publicUrl');
+
+      return publicUrl;
+    } catch (e) {
+      print('Web image upload error: $e');
+      return null;
+    }
   }
 }

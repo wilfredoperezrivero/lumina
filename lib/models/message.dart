@@ -4,6 +4,7 @@ class Message {
   final String? contentText;
   final String? contentAudioUrl;
   final String? contentVideoUrl;
+  final String? contentImageUrl;
   final DateTime? submittedAt;
   final bool hidden;
   final String? contributorName;
@@ -16,6 +17,7 @@ class Message {
     this.contentText,
     this.contentAudioUrl,
     this.contentVideoUrl,
+    this.contentImageUrl,
     this.submittedAt,
     this.hidden = false,
     this.contributorName,
@@ -30,6 +32,7 @@ class Message {
       contentText: json['content_text'],
       contentAudioUrl: json['content_audio_url'],
       contentVideoUrl: json['content_video_url'],
+      contentImageUrl: json['content_image_url'],
       submittedAt: json['submitted_at'] != null
           ? DateTime.tryParse(json['submitted_at'])
           : null,
@@ -49,6 +52,7 @@ class Message {
       'content_text': contentText,
       'content_audio_url': contentAudioUrl,
       'content_video_url': contentVideoUrl,
+      'content_image_url': contentImageUrl,
       'submitted_at': submittedAt?.toIso8601String(),
       'hidden': hidden,
       'contributor_name': contributorName,

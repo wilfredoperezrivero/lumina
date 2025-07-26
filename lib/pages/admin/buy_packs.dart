@@ -6,12 +6,49 @@ class BuyPacksPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userId = AuthService.currentUser()?.id;
-    String buildLemonSqueezyUrl(String productId) {
-      final base = 'https://luminamemorials.lemonsqueezy.com/buy/';
-      final url = '$base$productId?discount=0';
-      if (userId == null) return url;
-      return '$url&checkout[custom]=$userId';
+    String buildLemonSqueezyUrl() {
+      final base =
+          'https://luminamemorials.lemonsqueezy.com/buy/5a9d4848-1038-48ae-ba71-9c81412c9789';
+      if (userId == null) return base;
+      return '$base?checkout[custom][admin_id]=$userId';
     }
+
+    final packs = [
+      {
+        'title': 'Pack of 5 capsules',
+        'description': 'Perfect to get started. Base price per capsule.',
+        'price': '\$75',
+        'capsules': 5,
+      },
+      {
+        'title': 'Pack of 10 capsules',
+        'description':
+            'Save 10% over the starter pack — ideal for your first few weeks with Lumina.',
+        'price': '\$135',
+        'capsules': 10,
+      },
+      {
+        'title': 'Pack of 25 capsules',
+        'description':
+            'Save 15% and make Lumina a natural part of every farewell you offer.',
+        'price': '\$319',
+        'capsules': 25,
+      },
+      {
+        'title': 'Pack of 50 capsules',
+        'description':
+            'Save 25%. Perfect for funeral homes with steady monthly demand.',
+        'price': '\$562',
+        'capsules': 50,
+      },
+      {
+        'title': 'Pack of 100 capsules',
+        'description':
+            'Save 35%. Boost your margin and bring Lumina to every farewell.',
+        'price': '\$975',
+        'capsules': 100,
+      },
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -26,49 +63,51 @@ class BuyPacksPage extends StatelessWidget {
             'Get Lumina in packs tailored to your needs — from 5 to 100 capsules. For high volumes or continuous integration, contact us for a custom proposal.',
             style: TextStyle(fontSize: 16),
           ),
-          SizedBox(height: 16),
-          _PackCard(
-            title: 'Pack of 5 capsules',
-            description: 'Perfect to get started. Base price per capsule.',
-            price: ' \$75',
-            checkoutUrl:
-                buildLemonSqueezyUrl('bca48ea4-d904-4cdd-afab-4d3e104b8dfe'),
-          ),
-          SizedBox(height: 16),
-          _PackCard(
-            title: 'Pack of 10 capsules',
-            description:
-                'Save 10% over the starter pack — ideal for your first few weeks with Lumina.',
-            price: ' \$135',
-            checkoutUrl:
-                buildLemonSqueezyUrl('bca48ea4-d904-4cdd-afab-4d3e104b8dfe'),
-          ),
-          SizedBox(height: 16),
-          _PackCard(
-            title: 'Pack of 20 capsules',
-            description:
-                'Save 15% and make Lumina a natural part of every farewell you offer.',
-            price: ' \$319',
-            checkoutUrl:
-                buildLemonSqueezyUrl('bca48ea4-d904-4cdd-afab-4d3e104b8dfe'),
-          ),
-          SizedBox(height: 16),
-          _PackCard(
-            title: 'Pack of 50 capsules',
-            description:
-                'Save 25%. Perfect for funeral homes with steady monthly demand.',
-            price: ' \$562',
-            checkoutUrl:
-                buildLemonSqueezyUrl('bca48ea4-d904-4cdd-afab-4d3e104b8dfe'),
-          ),
-          SizedBox(height: 16),
-          _PackCard(
-            title: 'Pack of 100 capsules',
-            description:
-                'Save 35%. Boost your margin and bring Lumina to every farewell.',
-            price: ' \$975',
-            checkoutUrl:
-                buildLemonSqueezyUrl('bca48ea4-d904-4cdd-afab-4d3e104b8dfe'),
+          SizedBox(height: 32),
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Available Packs',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  ),
+                  SizedBox(height: 16),
+                  ...packs
+                      .map((pack) => _PackListItem(
+                            title: pack['title'] as String,
+                            description: pack['description'] as String,
+                            price: pack['price'] as String,
+                            capsules: pack['capsules'] as int,
+                          ))
+                      .toList(),
+                  SizedBox(height: 24),
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final url = Uri.parse(buildLemonSqueezyUrl());
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url,
+                              mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade700,
+                        foregroundColor: Colors.white,
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        textStyle: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      child: Text('Buy Packs'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           SizedBox(height: 32),
           Card(
@@ -105,53 +144,76 @@ class BuyPacksPage extends StatelessWidget {
   }
 }
 
-class _PackCard extends StatelessWidget {
+class _PackListItem extends StatelessWidget {
   final String title;
   final String description;
   final String price;
-  final bool highlight;
-  final String checkoutUrl;
+  final int capsules;
 
-  const _PackCard({
+  const _PackListItem({
     required this.title,
     required this.description,
     required this.price,
-    required this.checkoutUrl,
-    this.highlight = false,
+    required this.capsules,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: highlight ? Colors.blue[50] : null,
-      elevation: highlight ? 4 : 2,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            SizedBox(height: 8),
-            Text(description, style: TextStyle(fontSize: 16)),
-            SizedBox(height: 12),
-            Text(price,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
-                    color: Colors.blue[900])),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                final url = Uri.parse(checkoutUrl);
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                }
-              },
-              child: Text('Buy'),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.blue.shade100,
+              borderRadius: BorderRadius.circular(8),
             ),
-          ],
-        ),
+            child: Center(
+              child: Text(
+                '$capsules',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade700,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            price,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.blue.shade700,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
 
 class MediaUploadService {
   static Future<String?> pickAndUploadFile(
@@ -58,7 +59,7 @@ class MediaUploadService {
   static Future<String> uploadImage(
       File file, String fileName, String capsuleId) async {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final path = 'c/$capsuleId/${timestamp}_$fileName';
+    final path = 'c/$capsuleId/$fileName';
     final storage = Supabase.instance.client.storage;
 
     try {
@@ -97,6 +98,30 @@ class MediaUploadService {
     } catch (e) {
       print('Image upload error: $e');
       throw Exception('Failed to upload image: ${e.toString()}');
+    }
+  }
+
+  // Method for web that uploads bytes directly
+  static Future<String?> uploadImageBytes(
+      Uint8List bytes, String fileName, String capsuleId) async {
+    try {
+      final path = 'c/$capsuleId/$fileName';
+      final storage = Supabase.instance.client.storage;
+
+      print('Uploading image bytes: $fileName');
+      print('File size: ${(bytes.length / 1024).toStringAsFixed(2)}KB');
+      print('Upload path: $path');
+
+      final upload = await storage.from('media').uploadBinary(path, bytes);
+      print('Upload successful: $upload');
+
+      final publicUrl = storage.from('media').getPublicUrl(path);
+      print('Public URL: $publicUrl');
+
+      return publicUrl;
+    } catch (e) {
+      print('Image bytes upload error: $e');
+      return null;
     }
   }
 

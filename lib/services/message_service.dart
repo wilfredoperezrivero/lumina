@@ -11,7 +11,6 @@ class MessageService {
           .from('messages')
           .select()
           .eq('capsule_id', capsuleId)
-          .eq('hidden', false)
           .order('submitted_at', ascending: false);
 
       return response.map((json) => Message.fromJson(json)).toList();
@@ -99,6 +98,18 @@ class MessageService {
           .update({'hidden': true}).eq('id', messageId);
     } catch (e) {
       throw Exception('Failed to hide message: ${e.toString()}');
+    }
+  }
+
+  /// Update message visibility
+  static Future<void> updateMessageVisibility(
+      String messageId, bool hidden) async {
+    try {
+      await _supabase
+          .from('messages')
+          .update({'hidden': hidden}).eq('id', messageId);
+    } catch (e) {
+      throw Exception('Failed to update message visibility: ${e.toString()}');
     }
   }
 }

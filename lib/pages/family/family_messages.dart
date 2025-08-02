@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:io';
 import '../../models/capsule.dart';
 import '../../services/capsule_service.dart';
 import '../../services/message_service.dart';
-import '../../services/media_upload_service.dart';
 import '../../models/message.dart';
 
 class FamilyMessagesPage extends StatefulWidget {
@@ -20,26 +17,11 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
   List<Message> _messages = [];
   bool _isLoading = true;
   String? _errorMessage;
-  bool _showMessageForm = false;
-  final TextEditingController _messageController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _imageUrlController = TextEditingController();
-  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-  }
-
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _nameController.dispose();
-    _emailController.dispose();
-    _imageUrlController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -81,6 +63,7 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
   Widget _buildMessageCard(Message message) {
     return Card(
       margin: EdgeInsets.only(bottom: 12),
+      color: message.hidden ? Colors.grey[100] : null,
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -89,19 +72,39 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  message.contributorName ?? 'Anonymous',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                Expanded(
+                  child: Text(
+                    message.contributorName ?? 'Anonymous',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
-                Text(
-                  _formatDate(message.submittedAt),
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      _formatDate(message.submittedAt),
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    IconButton(
+                      icon: Icon(
+                        message.hidden
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        size: 20,
+                        color: message.hidden ? Colors.grey : Colors.blue,
+                      ),
+                      onPressed: () => _toggleMessageVisibility(message),
+                      tooltip: message.hidden ? 'Show message' : 'Hide message',
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -116,10 +119,31 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
               ),
             ],
             SizedBox(height: 12),
+            if (message.hidden) ...[
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange[100],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Hidden',
+                  style: TextStyle(
+                    color: Colors.orange[800],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8),
+            ],
             if (message.contentText?.isNotEmpty == true) ...[
               Text(
                 message.contentText!,
-                style: TextStyle(fontSize: 14),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: message.hidden ? Colors.grey[600] : null,
+                ),
               ),
               SizedBox(height: 8),
             ],
@@ -273,109 +297,30 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
     }
   }
 
-  Future<void> _pickAndUploadImage() async {
+  Future<void> _toggleMessageVisibility(Message message) async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-      );
+      // Update the message in the database
+      await MessageService.updateMessageVisibility(message.id, !message.hidden);
 
-      if (result != null && result.files.isNotEmpty) {
-        setState(() {
-          _isSubmitting = true;
-        });
-
-        final file = File(result.files.first.path!);
-        final fileName = result.files.first.name;
-
-        // Upload image to Supabase storage
-        final imageUrl =
-            await MediaUploadService.uploadImage(file, fileName, _capsule!.id);
-
-        setState(() {
-          _imageUrlController.text = imageUrl;
-          _isSubmitting = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Image uploaded successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
+      // Update the local state
       setState(() {
-        _isSubmitting = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error uploading image: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _submitMessage() async {
-    if (_capsule == null) return;
-
-    final messageText = _messageController.text.trim();
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
-    final imageUrl = _imageUrlController.text.trim();
-
-    if (messageText.isEmpty && imageUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please add a message or image'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isSubmitting = true;
-    });
-
-    try {
-      await MessageService.createMessage(
-        capsuleId: _capsule!.id,
-        contentText: messageText.isNotEmpty ? messageText : null,
-        contentImageUrl: imageUrl.isNotEmpty ? imageUrl : null,
-        contributorName: name.isNotEmpty ? name : null,
-        contributorEmail: email.isNotEmpty ? email : null,
-      );
-
-      // Clear form
-      _messageController.clear();
-      _nameController.clear();
-      _emailController.clear();
-      _imageUrlController.clear();
-
-      // Hide form
-      setState(() {
-        _showMessageForm = false;
-        _isSubmitting = false;
+        final index = _messages.indexWhere((m) => m.id == message.id);
+        if (index != -1) {
+          _messages[index] = _messages[index].copyWith(hidden: !message.hidden);
+        }
       });
 
-      // Reload messages
-      await _loadData();
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Message sent successfully!'),
+          content: Text(message.hidden ? 'Message shown' : 'Message hidden'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {
-      setState(() {
-        _isSubmitting = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error sending message: ${e.toString()}'),
+          content: Text('Error updating message: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -512,151 +457,8 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
                         ),
                       ],
                     ),
-                    if (_showMessageForm) _buildMessageForm(),
                   ],
                 ),
-      floatingActionButton:
-          _capsule != null && !_isLoading && _errorMessage == null
-              ? FloatingActionButton(
-                  onPressed: () {
-                    setState(() {
-                      _showMessageForm = !_showMessageForm;
-                    });
-                  },
-                  child: Icon(_showMessageForm ? Icons.close : Icons.add),
-                  backgroundColor: Colors.blue.shade700,
-                  foregroundColor: Colors.white,
-                )
-              : null,
-    );
-  }
-
-  Widget _buildMessageForm() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: Offset(0, -2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Add a Message',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _messageController,
-              decoration: InputDecoration(
-                labelText: 'Your message (optional)',
-                border: OutlineInputBorder(),
-                hintText: 'Share your thoughts...',
-              ),
-              maxLines: 3,
-            ),
-            SizedBox(height: 12),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Your name (optional)',
-                border: OutlineInputBorder(),
-                hintText: 'How should we call you?',
-              ),
-            ),
-            SizedBox(height: 12),
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(
-                labelText: 'Your email (optional)',
-                border: OutlineInputBorder(),
-                hintText: 'your@email.com',
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _imageUrlController,
-                    decoration: InputDecoration(
-                      labelText: 'Image URL (optional)',
-                      border: OutlineInputBorder(),
-                      hintText: 'https://example.com/image.jpg',
-                    ),
-                  ),
-                ),
-                SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: _isSubmitting ? null : _pickAndUploadImage,
-                  icon: Icon(Icons.upload),
-                  label: Text('Upload'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting
-                        ? null
-                        : () {
-                            setState(() {
-                              _showMessageForm = false;
-                            });
-                          },
-                    child: Text('Cancel'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submitMessage,
-                    child: _isSubmitting
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Text('Send'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade700,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

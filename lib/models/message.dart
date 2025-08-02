@@ -60,4 +60,32 @@ class Message {
       'created_at': createdAt?.toIso8601String(),
     };
   }
+
+  Message copyWith({
+    String? id,
+    String? capsuleId,
+    String? contentText,
+    String? contentAudioUrl,
+    String? contentVideoUrl,
+    String? contentImageUrl,
+    DateTime? submittedAt,
+    bool? hidden,
+    String? contributorName,
+    String? contributorEmail,
+    DateTime? createdAt,
+  }) {
+    return Message(
+      id: id ?? this.id,
+      capsuleId: capsuleId ?? this.capsuleId,
+      contentText: contentText ?? this.contentText,
+      contentAudioUrl: contentAudioUrl ?? this.contentAudioUrl,
+      contentVideoUrl: contentVideoUrl ?? this.contentVideoUrl,
+      contentImageUrl: contentImageUrl ?? this.contentImageUrl,
+      submittedAt: submittedAt ?? this.submittedAt,
+      hidden: hidden ?? this.hidden,
+      contributorName: contributorName ?? this.contributorName,
+      contributorEmail: contributorEmail ?? this.contributorEmail,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

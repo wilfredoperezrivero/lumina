@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../models/capsule.dart';
 import '../../services/capsule_service.dart';
 import '../../services/media_upload_service.dart';
@@ -128,32 +129,43 @@ class _CapsulePageState extends State<CapsulePage> {
 
       if (result != null && result.files.isNotEmpty) {
         final pickedFile = result.files.first;
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = '${timestamp}_${pickedFile.name}';
 
-        // Check if file path is available
-        if (pickedFile.path == null) {
-          throw Exception('Could not access file path. Please try again.');
-        }
+        print('Selected file: ${pickedFile.name}');
+        print('File bytes available: ${pickedFile.bytes != null}');
 
-        final file = File(pickedFile.path!);
-        final fileName = pickedFile.name;
-
-        print('Selected file: $fileName');
-        print('File path: ${pickedFile.path}');
-
-        // Upload image to Supabase storage
         String imageUrl;
-        try {
-          imageUrl = await MediaUploadService.uploadImage(
-              file, fileName, widget.capsuleId);
-        } catch (e) {
-          print('Primary upload method failed, trying web method: $e');
-          // Try alternative web method as fallback
-          final webImageUrl =
-              await MediaUploadService.uploadImageWeb(widget.capsuleId);
+
+        // Always try to use bytes first (works on all platforms)
+        if (pickedFile.bytes != null) {
+          print('Using bytes upload method');
+          final webImageUrl = await MediaUploadService.uploadImageBytes(
+              pickedFile.bytes!, fileName, widget.capsuleId);
           if (webImageUrl != null) {
             imageUrl = webImageUrl;
           } else {
-            throw Exception('Both upload methods failed. Please try again.');
+            throw Exception('Failed to upload image. Please try again.');
+          }
+        } else {
+          // Fallback for platforms where bytes might not be available
+          if (kIsWeb) {
+            throw Exception(
+                'Could not read file data on web. Please try again.');
+          }
+
+          // Only try path on non-web platforms
+          try {
+            if (pickedFile.path != null) {
+              print('Using file path upload method');
+              final file = File(pickedFile.path!);
+              imageUrl = await MediaUploadService.uploadImage(
+                  file, fileName, widget.capsuleId);
+            } else {
+              throw Exception('Could not access file data. Please try again.');
+            }
+          } catch (pathError) {
+            throw Exception('Could not access file data. Please try again.');
           }
         }
 
@@ -183,6 +195,9 @@ class _CapsulePageState extends State<CapsulePage> {
         errorMessage = 'Could not access the selected file. Please try again.';
       } else if (e.toString().contains('permission')) {
         errorMessage = 'Permission denied. Please allow access to your photos.';
+      } else if (e.toString().contains('path is unavailable')) {
+        errorMessage =
+            'File access error. Please try selecting the image again.';
       } else {
         errorMessage = 'Error uploading image: ${e.toString()}';
       }

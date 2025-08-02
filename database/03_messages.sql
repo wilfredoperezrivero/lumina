@@ -44,13 +44,13 @@ CREATE POLICY "Users can insert messages for accessible capsules" ON public.mess
         )
     );
 
--- Only admins can update messages (for moderation purposes)
-CREATE POLICY "Admins can update messages" ON public.messages
+-- Both admins and family users can update message visibility (hidden field)
+CREATE POLICY "Users can update message visibility" ON public.messages
     FOR UPDATE USING (
         EXISTS (
             SELECT 1 FROM public.capsules 
             WHERE capsules.id = messages.capsule_id 
-            AND capsules.admin_id = auth.uid()
+            AND (capsules.admin_id = auth.uid() OR capsules.family_id = auth.uid())
         )
     );
 

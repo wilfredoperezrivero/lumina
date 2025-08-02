@@ -27,73 +27,105 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-  // Extract admin_id from custom fields
-  const customFields = payload.data?.attributes?.custom_data || {};
-  const adminId = customFields.admin_id;
-
-  // Save payment data to payments_logs table first
+  // Save payment data to payments_logs table FIRST - before any processing
   const paymentLog = {
     webhook_payload: payload,
-    admin_id: adminId
+    admin_id: null // Will be extracted and updated later
   };
 
-  // Insert payment log
+  // Insert payment log first
+  console.log('Saving payment log to:', `${supabaseUrl}/rest/v1/payments_logs`);
+  console.log('Payment log data:', JSON.stringify(paymentLog));
+  
   const logResponse = await fetch(`${supabaseUrl}/rest/v1/payments_logs`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${serviceRoleKey}`,
       'apikey': serviceRoleKey,
       'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
     },
     body: JSON.stringify([paymentLog]),
   });
 
+  console.log('Log response status:', logResponse.status);
+  console.log('Log response headers:', Object.fromEntries(logResponse.headers.entries()));
+
   if (!logResponse.ok) {
-    const logError = await logResponse.json();
+    let logError;
+    try {
+      const errorText = await logResponse.text();
+      console.log('Error response text:', errorText);
+      logError = JSON.parse(errorText);
+    } catch (e) {
+      logError = { error: 'Failed to parse error response', status: logResponse.status };
+    }
     console.error('Failed to save payment log:', logError);
-    return new Response(JSON.stringify({ error: 'Failed to save payment log' }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'Failed to save payment log', details: logError }), { status: 500, headers: corsHeaders });
   }
 
-  return new Response(JSON.stringify({ success: true, data: logResponse }), { status: 200, headers: corsHeaders });
-
-  const logData = await logResponse.json();
+  let logData;
+  try {
+    const responseText = await logResponse.text();
+    console.log('Success response text:', responseText);
+    
+    if (responseText.trim() === '') {
+      console.log('Empty response, creating dummy log data');
+      logData = [{ id: 'temp-id-' + Date.now() }];
+    } else {
+      logData = JSON.parse(responseText);
+    }
+  } catch (e) {
+    console.error('Failed to parse log response:', e);
+    console.log('Response text was:', await logResponse.text());
+    return new Response(JSON.stringify({ error: 'Failed to parse log response', details: e.message }), { status: 500, headers: corsHeaders });
+  }
+  
   const paymentLogId = logData[0]?.id;
+  console.log('Payment log saved with ID:', paymentLogId);
 
-  console.log('Payment log saved:', { paymentLogId, adminId });
+  // Extract admin_id: try meta.custom_data.admin_id, then attributes.custom_data.admin_id, then attributes.admin_id
+  let adminId = payload?.meta?.custom_data?.admin_id
+    || payload?.data?.attributes?.custom_data?.admin_id
+    || payload?.data?.attributes?.admin_id;
+  console.log('Parsed admin_id:', adminId);
 
-  // Validate required fields
-  if (!adminId) {
-    return new Response(JSON.stringify({ error: 'Missing admin_id in custom fields' }), { status: 400, headers: corsHeaders });
-  }
-
-  // Determine capsules_allowed based on product ID or variant
-  const productId = payload.data?.attributes?.product_id;
-  const variantId = payload.data?.attributes?.variant_id;
-  const productName = payload.data?.attributes?.product_name;
+  // Calculate capsulesAllowed from first_order_item.variant_name (e.g., 'Pack 25')
   let capsulesAllowed = 0;
-
-  // Map product/variant IDs to capsule counts
-  // You'll need to update these IDs based on your actual LemonSqueezy product setup
-  if (productId === 'your-5-pack-product-id' || variantId === 'your-5-pack-variant-id') {
-    capsulesAllowed = 5;
-  } else if (productId === 'your-10-pack-product-id' || variantId === 'your-10-pack-variant-id') {
-    capsulesAllowed = 10;
-  } else if (productId === 'your-20-pack-product-id' || variantId === 'your-20-pack-variant-id') {
-    capsulesAllowed = 20;
-  } else if (productId === 'your-50-pack-product-id' || variantId === 'your-50-pack-variant-id') {
-    capsulesAllowed = 50;
-  } else if (productId === 'your-100-pack-product-id' || variantId === 'your-100-pack-variant-id') {
-    capsulesAllowed = 100;
-  } else {
-    // Fallback: try to extract from product name
-    const match = productName?.match(/(\d+)/);
+  const variantName = payload?.data?.attributes?.first_order_item?.variant_name;
+  if (variantName) {
+    const match = variantName.match(/(\d+)/);
     if (match) {
-      capsulesAllowed = parseInt(match[1]);
+      capsulesAllowed = parseInt(match[1], 10);
+    }
+  }
+  console.log('Parsed capsulesAllowed from variant_name:', capsulesAllowed, 'variant_name:', variantName);
+
+  // Update payment log with admin_id if we found one
+  if (adminId && paymentLogId) {
+    const updateResponse = await fetch(`${supabaseUrl}/rest/v1/payments_logs?id=eq.${paymentLogId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'apikey': serviceRoleKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ admin_id: adminId }),
+    });
+    
+    if (updateResponse.ok) {
+      console.log('Updated payment log with admin_id:', adminId);
+    } else {
+      console.error('Failed to update payment log with admin_id');
     }
   }
 
+  // Validate required fields
+  if (!adminId) {
+    return new Response(JSON.stringify({ error: 'Missing admin_id in webhook payload' }), { status: 400, headers: corsHeaders });
+  }
   if (!capsulesAllowed || capsulesAllowed <= 0) {
-    return new Response(JSON.stringify({ error: 'Could not determine capsules_allowed from product data' }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: 'Could not determine capsules_allowed from variant_name' }), { status: 400, headers: corsHeaders });
   }
 
   // Map LemonSqueezy webhook fields to packs table fields
@@ -119,12 +151,19 @@ serve(async (req) => {
     body: JSON.stringify([pack]),
   });
 
-  const upsertData = await upsertResponse.json();
+  let upsertData;
+  try {
+    upsertData = await upsertResponse.json();
+  } catch (e) {
+    console.error('Failed to parse upsert response:', e);
+    return new Response(JSON.stringify({ error: 'Failed to parse upsert response' }), { status: 500, headers: corsHeaders });
+  }
+  
   if (!upsertResponse.ok) {
     console.error('Failed to upsert pack:', upsertData);
     return new Response(JSON.stringify({ error: upsertData }), { status: 400, headers: corsHeaders });
   }
 
-  console.log('Successfully created pack:', { adminId, capsulesAllowed, packId: upsertData[0]?.id, paymentLogId });
+  console.log('Successfully created pack:', { adminId, capsulesAllowed, packId: upsertData[0]?.id });
   return new Response(JSON.stringify({ success: true, data: upsertData }), { status: 200, headers: corsHeaders });
 }); 

@@ -65,30 +65,107 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
     }
   }
 
-  Future<void> _generateVideo() async {
+  Future<void> _closeCapsuleAndGenerateVideo() async {
     if (_capsule == null) return;
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Close Capsule'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to close this capsule?',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange[200]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.orange[700], size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'This action is irreversible',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '• The capsule will be permanently closed',
+                    style: TextStyle(fontSize: 14, color: Colors.orange[700]),
+                  ),
+                  Text(
+                    '• No new messages can be added',
+                    style: TextStyle(fontSize: 14, color: Colors.orange[700]),
+                  ),
+                  Text(
+                    '• Video generation will begin automatically',
+                    style: TextStyle(fontSize: 14, color: Colors.orange[700]),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Close Capsule'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return; // User cancelled
+    }
 
     setState(() {
       _isGeneratingVideo = true;
     });
 
     try {
-      // Call video generation API
-      await CapsuleService.generateVideo(_capsule!.id);
+      // Call the new method that closes capsule and adds job to queue
+      await CapsuleService.closeCapsuleAndGenerateVideo(_capsule!.id);
 
       // Reload capsule to get updated status
       await _loadCapsule();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Video generation started!'),
+          content: Text('Capsule closed and video generation started!'),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to generate video: ${e.toString()}'),
+          content: Text(
+              'Failed to close capsule and generate video: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -287,7 +364,7 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
                 ElevatedButton.icon(
                   onPressed: () => context.go('/family/messages'),
                   icon: Icon(Icons.message),
-                  label: Text('Messages'),
+                  label: Text('Review Messages'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple.shade600,
                     foregroundColor: Colors.white,
@@ -306,7 +383,9 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
                 else if (_capsule?.status == 'active' ||
                     _capsule?.status == 'draft')
                   ElevatedButton.icon(
-                    onPressed: _isGeneratingVideo ? null : _generateVideo,
+                    onPressed: _isGeneratingVideo
+                        ? null
+                        : _closeCapsuleAndGenerateVideo,
                     icon: _isGeneratingVideo
                         ? SizedBox(
                             width: 16,
@@ -317,7 +396,7 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
                         : Icon(Icons.video_library),
                     label: Text(_isGeneratingVideo
                         ? 'Generating...'
-                        : 'Generate Video'),
+                        : 'Close capsule and generate video'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.teal.shade600,
                       foregroundColor: Colors.white,

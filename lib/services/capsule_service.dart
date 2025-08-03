@@ -74,27 +74,26 @@ class CapsuleService {
     }
   }
 
-  // Generate video for a capsule
-  static Future<void> generateVideo(String capsuleId) async {
+  // Close capsule and generate video
+  static Future<void> closeCapsuleAndGenerateVideo(String capsuleId) async {
     final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
-    // Update capsule status to indicate video generation
-    await _supabase.from('capsules').update({
-      'status': 'generating',
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', capsuleId);
+    try {
+      // Call the database function that closes the capsule and adds job to queue
+      await _supabase.rpc('close_capsule_and_generate_video', params: {
+        'capsule_id': capsuleId,
+      });
+    } catch (e) {
+      throw Exception(
+          'Failed to close capsule and generate video: ${e.toString()}');
+    }
+  }
 
-    // TODO: Call actual video generation API
-    // For now, just simulate the process
-    await Future.delayed(Duration(seconds: 2));
-
-    // Update with final video URL (simulated)
-    await _supabase.from('capsules').update({
-      'status': 'completed',
-      'final_video_url': 'https://example.com/videos/$capsuleId.mp4',
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', capsuleId);
+  // Generate video for a capsule (legacy method - kept for backward compatibility)
+  static Future<void> generateVideo(String capsuleId) async {
+    // Use the new method
+    await closeCapsuleAndGenerateVideo(capsuleId);
   }
 
   // Get capsule by ID (public access)

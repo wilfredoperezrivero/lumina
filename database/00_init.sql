@@ -13,6 +13,9 @@
 \i 07_credits_triggers.sql
 \i 08_credits_initialization.sql
 
+-- Create video jobs queue system
+\i 09_video_jobs_queue.sql
+
 -- Initialize credits for existing admins (if any)
 SELECT public.initialize_all_admin_credits();
 

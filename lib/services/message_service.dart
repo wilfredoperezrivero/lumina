@@ -19,6 +19,42 @@ class MessageService {
     }
   }
 
+  /// Get paginated messages for a specific capsule
+  static Future<List<Message>> getMessagesForCapsulePaginated(
+    String capsuleId, {
+    required int page,
+    required int pageSize,
+  }) async {
+    try {
+      final offset = page * pageSize;
+
+      final response = await _supabase
+          .from('messages')
+          .select()
+          .eq('capsule_id', capsuleId)
+          .order('submitted_at', ascending: false)
+          .range(offset, offset + pageSize - 1);
+
+      return response.map((json) => Message.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Failed to get messages: ${e.toString()}');
+    }
+  }
+
+  /// Get total count of messages for a specific capsule
+  static Future<int> getMessagesCount(String capsuleId) async {
+    try {
+      final response = await _supabase
+          .from('messages')
+          .select('*')
+          .eq('capsule_id', capsuleId);
+
+      return response.length;
+    } catch (e) {
+      throw Exception('Failed to get messages count: ${e.toString()}');
+    }
+  }
+
   /// Create a new message
   static Future<Message> createMessage({
     required String capsuleId,

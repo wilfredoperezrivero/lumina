@@ -16,12 +16,32 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
   Capsule? _capsule;
   List<Message> _messages = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMoreMessages = true;
   String? _errorMessage;
+  final ScrollController _scrollController = ScrollController();
+  int _currentPage = 0;
+  int _totalMessages = 0;
+  static const int _pageSize = 10;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreMessages();
+    }
   }
 
   Future<void> _loadData() async {
@@ -29,6 +49,8 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
+        _currentPage = 0;
+        _hasMoreMessages = true;
       });
 
       final user = Supabase.instance.client.auth.currentUser;
@@ -43,14 +65,21 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
         throw Exception('No capsule assigned to this family');
       }
 
-      // Get messages for this capsule
-      final messages =
-          await MessageService.getMessagesForCapsule(familyCapsule.id);
+      // Get total count and first page of messages
+      final totalCount =
+          await MessageService.getMessagesCount(familyCapsule.id);
+      final messages = await MessageService.getMessagesForCapsulePaginated(
+        familyCapsule.id,
+        page: 0,
+        pageSize: _pageSize,
+      );
 
       setState(() {
         _capsule = familyCapsule;
         _messages = messages;
+        _totalMessages = totalCount;
         _isLoading = false;
+        _hasMoreMessages = messages.length == _pageSize;
       });
     } catch (e) {
       setState(() {
@@ -58,6 +87,40 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadMoreMessages() async {
+    if (_isLoadingMore || !_hasMoreMessages || _capsule == null) return;
+
+    try {
+      setState(() {
+        _isLoadingMore = true;
+      });
+
+      final nextPage = _currentPage + 1;
+      final moreMessages = await MessageService.getMessagesForCapsulePaginated(
+        _capsule!.id,
+        page: nextPage,
+        pageSize: _pageSize,
+      );
+
+      setState(() {
+        _messages.addAll(moreMessages);
+        _currentPage = nextPage;
+        _hasMoreMessages = moreMessages.length == _pageSize;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingMore = false;
+      });
+      // Don't show error for loading more, just silently fail
+      print('Failed to load more messages: ${e.toString()}');
+    }
+  }
+
+  Future<void> _refreshMessages() async {
+    await _loadData();
   }
 
   Widget _buildMessageCard(Message message) {
@@ -73,12 +136,27 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
-                    message.contributorName ?? 'Anonymous',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        message.contributorName ?? 'Anonymous',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (message.contributorEmail?.isNotEmpty == true) ...[
+                        SizedBox(height: 4),
+                        Text(
+                          message.contributorEmail!,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 Row(
@@ -91,35 +169,31 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
                       ),
                     ),
                     SizedBox(width: 8),
-                    IconButton(
+                    ElevatedButton.icon(
+                      onPressed: () => _toggleMessageVisibility(message),
                       icon: Icon(
                         message.hidden
                             ? Icons.visibility_off
                             : Icons.visibility,
-                        size: 20,
-                        color: message.hidden ? Colors.grey : Colors.blue,
+                        size: 16,
                       ),
-                      onPressed: () => _toggleMessageVisibility(message),
-                      tooltip: message.hidden ? 'Show message' : 'Hide message',
-                      padding: EdgeInsets.zero,
-                      constraints: BoxConstraints(),
+                      label: Text(message.hidden ? 'Show' : 'Hide'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            message.hidden ? Colors.orange : Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        minimumSize: Size(0, 28),
+                        textStyle: TextStyle(fontSize: 12),
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
-            if (message.contributorEmail?.isNotEmpty == true) ...[
-              SizedBox(height: 4),
-              Text(
-                message.contributorEmail!,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
-              ),
-            ],
-            SizedBox(height: 12),
             if (message.hidden) ...[
+              SizedBox(height: 8),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -147,95 +221,59 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
               ),
               SizedBox(height: 8),
             ],
-            if (message.contentAudioUrl?.isNotEmpty == true) ...[
+            // Media buttons on the left
+            if (message.contentAudioUrl?.isNotEmpty == true ||
+                message.contentVideoUrl?.isNotEmpty == true ||
+                message.contentImageUrl?.isNotEmpty == true) ...[
               Row(
                 children: [
-                  Icon(Icons.audiotrack, size: 16, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Audio message available',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 12,
+                  if (message.contentAudioUrl?.isNotEmpty == true) ...[
+                    ElevatedButton.icon(
+                      onPressed: () => _openAudio(message.contentAudioUrl!),
+                      icon: Icon(Icons.play_arrow, size: 16),
+                      label: Text('Audio'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size(0, 24),
+                        textStyle: TextStyle(fontSize: 11),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _openAudio(message.contentAudioUrl!),
-                    icon: Icon(Icons.play_arrow, size: 16),
-                    label: Text('Play'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      minimumSize: Size(0, 32),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8),
-            ],
-            if (message.contentVideoUrl?.isNotEmpty == true) ...[
-              Row(
-                children: [
-                  Icon(Icons.videocam, size: 16, color: Colors.red),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Video message available',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 12,
+                    SizedBox(width: 8),
+                  ],
+                  if (message.contentVideoUrl?.isNotEmpty == true) ...[
+                    ElevatedButton.icon(
+                      onPressed: () => _openVideo(message.contentVideoUrl!),
+                      icon: Icon(Icons.play_arrow, size: 16),
+                      label: Text('Video'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size(0, 24),
+                        textStyle: TextStyle(fontSize: 11),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _openVideo(message.contentVideoUrl!),
-                    icon: Icon(Icons.play_arrow, size: 16),
-                    label: Text('Play'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      minimumSize: Size(0, 32),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8),
-            ],
-            if (message.contentImageUrl?.isNotEmpty == true) ...[
-              Row(
-                children: [
-                  Icon(Icons.image, size: 16, color: Colors.green),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Image message available',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontSize: 12,
+                    SizedBox(width: 8),
+                  ],
+                  if (message.contentImageUrl?.isNotEmpty == true) ...[
+                    ElevatedButton.icon(
+                      onPressed: () => _openImage(message.contentImageUrl!),
+                      icon: Icon(Icons.open_in_new, size: 16),
+                      label: Text('Image'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size(0, 24),
+                        textStyle: TextStyle(fontSize: 11),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _openImage(message.contentImageUrl!),
-                    icon: Icon(Icons.open_in_new, size: 16),
-                    label: Text('View'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      minimumSize: Size(0, 32),
-                    ),
-                  ),
+                  ],
                 ],
               ),
               SizedBox(height: 8),
@@ -406,10 +444,11 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
                                 ),
                                 SizedBox(height: 4),
                                 Text(
-                                  '${_messages.length} message${_messages.length == 1 ? '' : 's'}',
+                                  'Total: $_totalMessages message${_totalMessages == 1 ? '' : 's'}',
                                   style: TextStyle(
                                     color: Colors.grey[600],
                                     fontSize: 14,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -444,11 +483,21 @@ class _FamilyMessagesPageState extends State<FamilyMessagesPage> {
                                   ),
                                 )
                               : RefreshIndicator(
-                                  onRefresh: _loadData,
+                                  onRefresh: _refreshMessages,
                                   child: ListView.builder(
+                                    controller: _scrollController,
                                     padding: EdgeInsets.all(16),
-                                    itemCount: _messages.length,
+                                    itemCount: _messages.length +
+                                        (_isLoadingMore ? 1 : 0),
                                     itemBuilder: (context, index) {
+                                      if (index == _messages.length) {
+                                        return Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(16),
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        );
+                                      }
                                       return _buildMessageCard(
                                           _messages[index]);
                                     },

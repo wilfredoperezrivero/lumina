@@ -51,7 +51,7 @@ class CapsuleService {
     if (user == null) throw Exception('User not authenticated');
 
     // Check user role
-    final userRole = user.userMetadata?['role'] ?? 'family';
+    final userRole = user.userMetadata?['role'] ?? 'admin';
 
     if (userRole == 'admin') {
       // Admin can see all their capsules
@@ -71,6 +71,65 @@ class CapsuleService {
           .order('created_at', ascending: false);
 
       return response.map((json) => Capsule.fromJson(json)).toList();
+    }
+  }
+
+  // Get paginated capsules for the current user (admin or family)
+  static Future<List<Capsule>> getCapsulesPaginated({
+    required int page,
+    required int pageSize,
+  }) async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    // Check user role
+    final userRole = user.userMetadata?['role'] ?? 'admin';
+
+    final offset = page * pageSize;
+
+    if (userRole == 'admin') {
+      // Admin can see all their capsules
+      final response = await _supabase
+          .from('capsules')
+          .select()
+          .eq('admin_id', user.id)
+          .order('created_at', ascending: false)
+          .range(offset, offset + pageSize - 1);
+
+      return response.map((json) => Capsule.fromJson(json)).toList();
+    } else {
+      // Family can only see their assigned capsule
+      final response = await _supabase
+          .from('capsules')
+          .select()
+          .eq('family_id', user.id)
+          .order('created_at', ascending: false)
+          .range(offset, offset + pageSize - 1);
+
+      return response.map((json) => Capsule.fromJson(json)).toList();
+    }
+  }
+
+  // Get total count of capsules for the current user
+  static Future<int> getCapsulesCount() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    // Check user role
+    final userRole = user.userMetadata?['role'] ?? 'admin';
+
+    if (userRole == 'admin') {
+      // Admin can see all their capsules
+      final response =
+          await _supabase.from('capsules').select('*').eq('admin_id', user.id);
+
+      return response.length;
+    } else {
+      // Family can only see their assigned capsule
+      final response =
+          await _supabase.from('capsules').select('*').eq('family_id', user.id);
+
+      return response.length;
     }
   }
 

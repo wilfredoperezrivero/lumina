@@ -36,8 +36,22 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMsg = 'Login failed: ${e.toString()}';
+
+        // Provide more specific error messages
+        if (e.toString().contains('Invalid login credentials')) {
+          errorMsg =
+              'Invalid email or password. Please check your credentials.';
+        } else if (e.toString().contains('Email not confirmed')) {
+          errorMsg =
+              'Please check your email and confirm your account before logging in.';
+        } else if (e.toString().contains('400')) {
+          errorMsg =
+              'Login error (400). Please check your email confirmation or try again.';
+        }
+
         setState(() {
-          _errorMessage = 'Login failed: ${e.toString()}';
+          _errorMessage = errorMsg;
           _isLoading = false;
         });
       }
@@ -225,6 +239,23 @@ class _LoginPageState extends State<LoginPage> {
                       ? CircularProgressIndicator(color: Colors.white)
                       : Text('Login'),
                 ),
+              ),
+              SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('New user?'),
+                  TextButton(
+                    onPressed: () => context.go('/admin/register'),
+                    child: Text(
+                      'Create Account',
+                      style: TextStyle(
+                        color: Colors.blue.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

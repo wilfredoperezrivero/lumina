@@ -20,6 +20,7 @@ import 'pages/admin/settings.dart';
 import 'pages/admin/marketing.dart';
 import 'pages/admin/edit_capsule.dart';
 import 'pages/admin/capsule_details.dart';
+import 'pages/admin/register.dart';
 
 // Family pages
 import 'pages/family/family_capsule.dart';
@@ -70,6 +71,10 @@ GoRouter _router([String? initialRoute]) => GoRouter(
         GoRoute(
           path: '/login',
           builder: (context, state) => LoginPage(),
+        ),
+        GoRoute(
+          path: '/admin/register',
+          builder: (context, state) => AdminRegisterPage(),
         ),
         // Admin routes
         GoRoute(
@@ -126,14 +131,15 @@ GoRouter _router([String? initialRoute]) => GoRouter(
 
         final isLoginRoute = state.uri.path == '/login';
         final isResetPasswordRoute = state.uri.path == '/reset-password';
+        final isRegisterRoute = state.uri.path == '/admin/register';
         final isPublicCapsuleRoute = state.uri.path.startsWith('/capsule/');
 
-        // PUBLIC CAPSULE ROUTES HAVE ABSOLUTE PRIORITY - NO REDIRECTS
-        if (isPublicCapsuleRoute) {
+        // PUBLIC ROUTES HAVE ABSOLUTE PRIORITY - NO REDIRECTS
+        if (isPublicCapsuleRoute || isRegisterRoute) {
           return null; // Allow access without authentication
         }
 
-        // If not authenticated and not on login/reset password, redirect to login
+        // If not authenticated and not on public routes, redirect to login
         if (!isAuthenticated && !isLoginRoute && !isResetPasswordRoute) {
           return '/login';
         }

@@ -16,6 +16,9 @@
 -- Create video jobs queue system
 \i 09_video_jobs_queue.sql
 
+-- Create admin registration function
+\i 11_admin_registration_function.sql
+
 -- Initialize credits for existing admins (if any)
 SELECT public.initialize_all_admin_credits();
 

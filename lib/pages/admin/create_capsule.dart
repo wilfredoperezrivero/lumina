@@ -340,14 +340,40 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
     });
 
     try {
+      print('DEBUG: Starting capsule creation...');
+      print('DEBUG: Name: ${_nameController.text}');
+      print('DEBUG: Family Email: ${_familyEmailController.text}');
       // Create a new user with the family email via backend
       final String password =
           'test2025'; // 'temp_password_${DateTime.now().millisecondsSinceEpoch}';
+
+      final apiUrl = dotenv.env['API_CREATE_FAMILY_USER'];
+      final anonKey = dotenv.env['SUPABASE_ANON_KEY'];
+      print('DEBUG: API URL: $apiUrl');
+      if (apiUrl == null || apiUrl.isEmpty) {
+        setState(() {
+          _errorMessage =
+              'Environment variable API_CREATE_FAMILY_USER is not set.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      if (anonKey == null || anonKey.isEmpty) {
+        setState(() {
+          _errorMessage = 'Environment variable SUPABASE_ANON_KEY is not set.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      print('DEBUG: ANON KEY: ${anonKey.substring(0, 10)}...');
+
       final response = await http.post(
-        Uri.parse(dotenv.env['API_CREATE_FAMILY_USER']!),
+        Uri.parse(apiUrl),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${dotenv.env['SUPABASE_ANON_KEY']}',
+          'Authorization': 'Bearer $anonKey',
         },
         body: jsonEncode({
           'email': _familyEmailController.text,
@@ -356,20 +382,50 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
         }),
       );
 
+      print('DEBUG: API Response Status: ${response.statusCode}');
+      print('DEBUG: API Response Body: ${response.body}');
+
       if (response.statusCode != 200) {
         setState(() {
-          _errorMessage = 'Failed to create user: \\${response.body}';
+          _errorMessage = 'Failed to create user: ${response.body}';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Check if response body is not empty
+      if (response.body.isEmpty) {
+        setState(() {
+          _errorMessage = 'Empty response from user creation API';
           _isLoading = false;
         });
         return;
       }
 
       final newUser = jsonDecode(response.body);
+      print('DEBUG: Parsed JSON: $newUser');
+
+      // Check if the response has the expected structure
+      if (newUser == null ||
+          newUser['user'] == null ||
+          newUser['user']['id'] == null) {
+        print('DEBUG: Invalid response structure');
+        setState(() {
+          _errorMessage =
+              'Invalid response from user creation API: ${response.body}';
+          _isLoading = false;
+        });
+        return;
+      }
+
       final familyUserId = newUser['user']['id'];
+      print('DEBUG: Family User ID: $familyUserId');
 
       // Get the current user (admin)
       final adminUser = AuthService.currentUser();
+      print('DEBUG: Admin User: ${adminUser?.id}');
       if (adminUser == null) {
+        print('DEBUG: Admin user is null');
         setState(() {
           _errorMessage = 'Current user not authenticated.';
           _isLoading = false;
@@ -378,6 +434,8 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
       }
 
       // Create the capsule with admin_id as current user and family_id as new user
+      print(
+          'DEBUG: Creating capsule with adminId: ${adminUser.id}, familyId: $familyUserId');
       final capsule = await CapsuleService.createCapsule(
         name: _nameController.text,
         dateOfBirth: _dateOfBirthController.text.isNotEmpty
@@ -394,6 +452,17 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
         status: 'active',
       );
 
+      print('DEBUG: Capsule created: ${capsule?.id}');
+      if (capsule == null) {
+        print('DEBUG: Capsule is null');
+        setState(() {
+          _errorMessage =
+              'Failed to create capsule: No response from capsule service';
+          _isLoading = false;
+        });
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -402,7 +471,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
         ),
       );
 
-      Navigator.of(context).pop(capsule);
+      context.go('/admin/list_capsules');
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to create capsule: ${e.toString()}';

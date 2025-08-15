@@ -46,7 +46,12 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
           capsules.where((c) => c.familyId == user.id).firstOrNull;
 
       if (familyCapsule == null) {
-        throw Exception('No capsule assigned to this family');
+        setState(() {
+          _isLoading = false;
+          _errorMessage =
+              'Welcome! You have successfully registered. However, no capsule has been assigned to you yet. Please contact the capsule administrator to get access to your family capsule.';
+        });
+        return;
       }
 
       // Generate public URL dynamically
@@ -448,6 +453,20 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
                       ElevatedButton(
                         onPressed: _loadCapsule,
                         child: Text('Retry'),
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () async {
+                          await Supabase.instance.client.auth.signOut();
+                          if (context.mounted) {
+                            context.go('/login');
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[300],
+                          foregroundColor: Colors.grey[700],
+                        ),
+                        child: Text('Sign Out'),
                       ),
                     ],
                   ),

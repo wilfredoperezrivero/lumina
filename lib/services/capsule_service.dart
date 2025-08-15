@@ -21,28 +21,46 @@ class CapsuleService {
     DateTime? createdAt,
     DateTime? scheduledDate,
   }) async {
-    final response = await _supabase
-        .from('capsules')
-        .insert({
-          'name': name,
-          if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
-          if (dateOfDeath != null) 'date_of_death': dateOfDeath,
-          if (language != null) 'language': language,
-          if (image != null) 'image': image,
-          'admin_id': adminId,
-          if (familyId != null) 'family_id': familyId,
-          if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
-          if (finalVideoUrl != null) 'final_video_url': finalVideoUrl,
-          'status': status ?? 'active',
-          if (familyEmail != null) 'family_email': familyEmail,
-          if (createdAt != null) 'created_at': createdAt.toIso8601String(),
-          if (scheduledDate != null)
-            'scheduled_date': scheduledDate.toIso8601String(),
-        })
-        .select()
-        .single();
+    try {
+      print('DEBUG: CapsuleService.createCapsule called with:');
+      print('DEBUG: name: $name');
+      print('DEBUG: adminId: $adminId');
+      print('DEBUG: familyId: $familyId');
 
-    return Capsule.fromJson(response);
+      final response = await _supabase
+          .from('capsules')
+          .insert({
+            'name': name,
+            if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
+            if (dateOfDeath != null) 'date_of_death': dateOfDeath,
+            if (language != null) 'language': language,
+            if (image != null) 'image': image,
+            'admin_id': adminId,
+            if (familyId != null) 'family_id': familyId,
+            if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
+            if (finalVideoUrl != null) 'final_video_url': finalVideoUrl,
+            'status': status ?? 'active',
+            if (familyEmail != null) 'family_email': familyEmail,
+            if (createdAt != null) 'created_at': createdAt.toIso8601String(),
+            if (scheduledDate != null)
+              'scheduled_date': scheduledDate.toIso8601String(),
+          })
+          .select()
+          .single();
+
+      print('DEBUG: Database response: $response');
+      if (response == null) {
+        throw Exception('No response from database when creating capsule');
+      }
+
+      print('DEBUG: Creating Capsule.fromJson with response');
+      final capsule = Capsule.fromJson(response);
+      print('DEBUG: Capsule created successfully: ${capsule.id}');
+      return capsule;
+    } catch (e) {
+      print('DEBUG: Error in createCapsule: $e');
+      throw Exception('Failed to create capsule: ${e.toString()}');
+    }
   }
 
   // Get all capsules for the current user (admin or family)

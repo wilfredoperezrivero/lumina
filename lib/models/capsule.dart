@@ -32,28 +32,36 @@ class Capsule {
   });
 
   factory Capsule.fromJson(Map<String, dynamic> json) {
-    return Capsule(
-      id: json['id'],
-      adminId: json['admin_id'],
-      familyId: json['family_id'],
-      name: json['name'],
-      dateOfBirth: json['date_of_birth'],
-      dateOfDeath: json['date_of_death'],
-      language: json['language'],
-      image: json['image'],
-      expiresAt: json['expires_at'] != null
-          ? DateTime.tryParse(json['expires_at'])
-          : null,
-      finalVideoUrl: json['final_video_url'],
-      status: json['status'],
-      familyEmail: json['family_email'],
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
-          : null,
-      scheduledDate: json['scheduled_date'] != null
-          ? DateTime.tryParse(json['scheduled_date'])
-          : null,
-    );
+    print('DEBUG: Capsule.fromJson called with: $json');
+    try {
+      final capsule = Capsule(
+        id: json['id'] ?? '',
+        adminId: json['admin_id'],
+        familyId: json['family_id'],
+        name: json['name'],
+        dateOfBirth: json['date_of_birth'],
+        dateOfDeath: json['date_of_death'],
+        language: json['language'],
+        image: json['image'],
+        expiresAt: json['expires_at'] != null
+            ? DateTime.tryParse(json['expires_at'])
+            : null,
+        finalVideoUrl: json['final_video_url'],
+        status: json['status'],
+        familyEmail: json['family_email'],
+        createdAt: json['created_at'] != null
+            ? DateTime.tryParse(json['created_at'])
+            : null,
+        scheduledDate: json['scheduled_date'] != null
+            ? DateTime.tryParse(json['scheduled_date'])
+            : null,
+      );
+      print('DEBUG: Capsule.fromJson completed successfully');
+      return capsule;
+    } catch (e) {
+      print('DEBUG: Error in Capsule.fromJson: $e');
+      rethrow;
+    }
   }
 
   Map<String, dynamic> toJson() {

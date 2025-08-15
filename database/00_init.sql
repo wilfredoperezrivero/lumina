@@ -16,6 +16,9 @@
 -- Create video jobs queue system
 \i 09_video_jobs_queue.sql
 
+-- Public access policy for viewing active capsules
+\i 10_public_capsules_policy.sql
+
 -- Create admin registration function
 \i 11_admin_registration_function.sql
 

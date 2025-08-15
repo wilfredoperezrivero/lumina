@@ -4,6 +4,9 @@ import '../../models/capsule.dart';
 import '../../services/auth_service.dart';
 
 class EditCapsulePage extends StatefulWidget {
+  final Capsule capsule;
+  const EditCapsulePage({Key? key, required this.capsule}) : super(key: key);
+
   @override
   _EditCapsulePageState createState() => _EditCapsulePageState();
 }
@@ -39,13 +42,11 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadCapsule();
-    });
+    _loadCapsule();
   }
 
   void _loadCapsule() {
-    final capsule = ModalRoute.of(context)!.settings.arguments as Capsule;
+    final capsule = widget.capsule;
     setState(() {
       _capsule = capsule;
       _nameController.text = capsule.name ?? '';

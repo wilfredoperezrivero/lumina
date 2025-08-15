@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../models/capsule.dart';
+import 'package:go_router/go_router.dart';
 
 class CapsuleDetailsPage extends StatefulWidget {
+  final Capsule capsule;
+  const CapsuleDetailsPage({Key? key, required this.capsule}) : super(key: key);
+
   @override
   _CapsuleDetailsPageState createState() => _CapsuleDetailsPageState();
 }
@@ -13,17 +17,8 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadCapsule();
-    });
-  }
-
-  void _loadCapsule() {
-    final capsule = ModalRoute.of(context)!.settings.arguments as Capsule;
-    setState(() {
-      _capsule = capsule;
-      _isLoading = false;
-    });
+    _capsule = widget.capsule;
+    _isLoading = false;
   }
 
   @override
@@ -271,6 +266,6 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
   }
 
   void _editCapsule() {
-    Navigator.pushNamed(context, '/admin/edit-capsule', arguments: _capsule);
+    context.push('/admin/edit-capsule', extra: _capsule);
   }
 }

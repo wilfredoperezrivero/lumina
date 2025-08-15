@@ -21,6 +21,7 @@ import 'pages/admin/marketing.dart';
 import 'pages/admin/edit_capsule.dart';
 import 'pages/admin/capsule_details.dart';
 import 'pages/admin/register.dart';
+import 'models/capsule.dart';
 
 // Family pages
 import 'pages/family/family_capsule.dart';
@@ -87,11 +88,13 @@ GoRouter _router([String? initialRoute]) => GoRouter(
         ),
         GoRoute(
           path: '/admin/edit-capsule',
-          builder: (context, state) => EditCapsulePage(),
+          builder: (context, state) =>
+              EditCapsulePage(capsule: state.extra as Capsule),
         ),
         GoRoute(
           path: '/admin/capsule_details',
-          builder: (context, state) => CapsuleDetailsPage(),
+          builder: (context, state) =>
+              CapsuleDetailsPage(capsule: state.extra as Capsule),
         ),
         GoRoute(
           path: '/admin/list_capsules',

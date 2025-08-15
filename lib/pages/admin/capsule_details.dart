@@ -225,9 +225,9 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
   Future<void> _generateMemorialPdf() async {
     if (_capsule == null) return;
 
-    // Build public URL similar to family capsule page logic
-    final origin = Uri.base.origin;
-    final publicUrl = '$origin/capsule/${_capsule!.id}';
+    // Build public URL using production domain
+    final publicUrl =
+        'https://app.luminamemorials.com/#/capsule/${_capsule!.id}';
 
     try {
       String? logoUrl;

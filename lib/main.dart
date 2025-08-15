@@ -63,6 +63,10 @@ GoRouter _router([String? initialRoute]) => GoRouter(
       routes: [
         // Public routes (no authentication required) - HIGHEST PRIORITY
         GoRoute(
+          path: '/',
+          builder: (context, state) => LoginPage(),
+        ),
+        GoRoute(
           path: '/capsule/:id',
           builder: (context, state) {
             final capsuleId = state.pathParameters['id']!;
@@ -129,9 +133,8 @@ GoRouter _router([String? initialRoute]) => GoRouter(
         GoRoute(
           path: '/:path*',
           builder: (context, state) {
-            final pathSegments =
-                (state.pathParameters['path'] as List<String>?) ?? [];
-            final path = pathSegments.join('/');
+            // Extract the unmatched path as a plain string so we can inspect it.
+            final path = state.pathParameters['path'] ?? '';
             // If this looks like a JWT token or auth fragment, redirect to login
             if (path.contains('access_token') ||
                 path.contains('token_type') ||
@@ -233,7 +236,7 @@ GoRouter _router([String? initialRoute]) => GoRouter(
 
         // Handle authenticated users
         if (isAuthenticated) {
-          final userRole = user!.userMetadata?['role'] ?? 'admin';
+          final userRole = user.userMetadata?['role'] ?? 'admin';
 
           // If on login page, redirect based on role
           if (isLoginRoute) {

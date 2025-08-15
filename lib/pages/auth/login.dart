@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -14,6 +15,26 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   String? _errorMessage;
   bool _gdprAccepted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _redirectIfLoggedIn();
+  }
+
+  void _redirectIfLoggedIn() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final session = Supabase.instance.client.auth.currentSession;
+    if (user != null && session != null && !session.isExpired) {
+      final role =
+          (user.userMetadata?['role'] ?? user.appMetadata['role']) ?? 'admin';
+      Future.microtask(() {
+        if (mounted) {
+          context.go(role == 'family' ? '/family/capsule' : '/admin/dashboard');
+        }
+      });
+    }
+  }
 
   Future<void> _login() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {

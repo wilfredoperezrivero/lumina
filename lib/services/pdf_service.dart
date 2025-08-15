@@ -8,7 +8,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:image/image.dart' as img;
 import 'package:flutter/foundation.dart';
-import 'settings_service.dart';
 
 class PdfService {
   // Load existing PDF and add logo watermark
@@ -163,7 +162,7 @@ class PdfService {
       // Create blob URL and trigger download
       final blob = html.Blob([pdfBytes]);
       final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
+      html.AnchorElement(href: url)
         ..setAttribute('download', fileName)
         ..click();
       html.Url.revokeObjectUrl(url);
@@ -223,7 +222,7 @@ class PdfService {
       // Create blob URL and trigger download
       final blob = html.Blob([pngBytes]);
       final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
+      html.AnchorElement(href: url)
         ..setAttribute('download', fileName)
         ..click();
       html.Url.revokeObjectUrl(url);
@@ -258,6 +257,159 @@ class PdfService {
           print('Failed to save to current directory: $e2');
           throw Exception('Failed to save PNG file: $e2');
         }
+      }
+    }
+  }
+
+  static Future<Uint8List> generateMemorialPdf({
+    required String capsuleName,
+    required String qrData,
+    String? logoUrl,
+  }) async {
+    // Load background and logo images
+    final bgBytes = await rootBundle.load('assets/velatorio.png');
+    final bgImage = pw.MemoryImage(bgBytes.buffer.asUint8List());
+
+    pw.MemoryImage? logoImage;
+    if (logoUrl != null && logoUrl.isNotEmpty) {
+      try {
+        final response = await http.get(Uri.parse(logoUrl));
+        if (response.statusCode == 200) {
+          logoImage = pw.MemoryImage(response.bodyBytes);
+        }
+      } catch (_) {}
+    }
+    // Fallback to asset if remote not available
+    logoImage ??= pw.MemoryImage(
+        (await rootBundle.load('assets/logo.png')).buffer.asUint8List());
+
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4.landscape,
+        margin: pw.EdgeInsets.zero,
+        build: (context) {
+          return pw.Stack(
+            children: [
+              // Background image
+              pw.Positioned.fill(
+                child: pw.Image(bgImage, fit: pw.BoxFit.cover),
+              ),
+              // Foreground content
+              pw.Positioned.fill(
+                child: pw.Container(
+                  alignment: pw.Alignment.center,
+                  child: pw.Column(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Header
+                      pw.Column(children: [
+                        pw.SizedBox(height: 40),
+                        pw.Text(
+                          capsuleName,
+                          style: pw.TextStyle(
+                            fontSize: 40,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.black,
+                          ),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                      ]),
+                      // Message left, QR code right centered
+                      pw.Center(
+                        child: pw.Row(
+                          mainAxisSize: pw.MainAxisSize.min,
+                          crossAxisAlignment: pw.CrossAxisAlignment.center,
+                          children: [
+                            pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  'Cherish a memory',
+                                  style: pw.TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.black,
+                                  ),
+                                ),
+                                pw.SizedBox(height: 10),
+                                pw.Container(
+                                  width: 250,
+                                  child: pw.Text(
+                                    'Scan this QR code and leave your message in the memorial. Your contribution will be part of a digital tribute that the family will cherish forever.',
+                                    style: pw.TextStyle(
+                                      fontSize: 18,
+                                      color: PdfColors.black,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            pw.SizedBox(width: 40),
+                            pw.BarcodeWidget(
+                              barcode: pw.Barcode.qrCode(),
+                              data: qrData,
+                              width: 200,
+                              height: 200,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Footer logo
+                      pw.Column(children: [
+                        pw.Image(logoImage!,
+                            width: 120, height: 120, fit: pw.BoxFit.contain),
+                        pw.SizedBox(height: 20),
+                      ]),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  static Future<String> downloadMemorialPdf({
+    required String capsuleName,
+    required String qrData,
+    String? logoUrl,
+  }) async {
+    final pdfBytes = await generateMemorialPdf(
+      capsuleName: capsuleName,
+      qrData: qrData,
+      logoUrl: logoUrl,
+    );
+
+    final sanitizedName = capsuleName.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    final fileName =
+        'Memorial_${sanitizedName.isNotEmpty ? sanitizedName : 'capsule'}.pdf';
+
+    if (kIsWeb) {
+      // Trigger browser download
+      final blob = html.Blob([pdfBytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      html.AnchorElement(href: url)
+        ..setAttribute('download', fileName)
+        ..click();
+      html.Url.revokeObjectUrl(url);
+      return 'Downloaded: $fileName';
+    } else {
+      try {
+        final directory = await getApplicationDocumentsDirectory();
+        final file = File('${directory.path}/$fileName');
+        await file.writeAsBytes(pdfBytes);
+        return file.path;
+      } catch (e) {
+        // Fallback to current directory
+        final file = File(fileName);
+        await file.writeAsBytes(pdfBytes);
+        return file.path;
       }
     }
   }

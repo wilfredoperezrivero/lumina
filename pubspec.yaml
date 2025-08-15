@@ -30,4 +30,5 @@ flutter:
     - assets/logo.png 
     - assets/Folleto ES.png
     - assets/Leaflet EN.png
+    - assets/velatorio.png
     - .env

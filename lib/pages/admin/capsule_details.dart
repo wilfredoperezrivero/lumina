@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/capsule.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/pdf_service.dart';
+import '../../services/settings_service.dart';
 
 class CapsuleDetailsPage extends StatefulWidget {
   final Capsule capsule;
@@ -97,157 +99,108 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
                       ),
                       SizedBox(height: 16),
 
-                      // Dates
-                      if (_capsule!.dateOfBirth?.isNotEmpty == true ||
-                          _capsule!.dateOfDeath?.isNotEmpty == true) ...[
-                        _buildDatesCard(),
-                        SizedBox(height: 16),
-                      ],
+                      // --- Combined Info Section ---
+                      _buildInfoSection(),
 
-                      // Language
-                      if (_capsule!.language?.isNotEmpty == true) ...[
-                        _buildInfoCard(
-                          'Language',
-                          _capsule!.language!,
-                          Icons.language,
-                        ),
-                        SizedBox(height: 16),
-                      ],
+                      SizedBox(height: 24),
 
-                      // Family Email
-                      if (_capsule!.familyEmail?.isNotEmpty == true) ...[
-                        _buildInfoCard(
-                          'Family Email',
-                          _capsule!.familyEmail!,
-                          Icons.email,
+                      // Generate PDF Button at bottom
+                      Center(
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _generateMemorialPdf,
+                            icon: Icon(Icons.picture_as_pdf),
+                            label: Text('Generate Memorial PDF'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade600,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                            ),
+                          ),
                         ),
-                        SizedBox(height: 16),
-                      ],
-
-                      // Scheduled Date
-                      if (_capsule!.scheduledDate != null) ...[
-                        _buildInfoCard(
-                          'Scheduled Date',
-                          '${_capsule!.scheduledDate!.day}/${_capsule!.scheduledDate!.month}/${_capsule!.scheduledDate!.year}',
-                          Icons.schedule,
-                        ),
-                        SizedBox(height: 16),
-                      ],
-
-                      // Created Date
-                      if (_capsule!.createdAt != null) ...[
-                        _buildInfoCard(
-                          'Created',
-                          '${_capsule!.createdAt!.day}/${_capsule!.createdAt!.month}/${_capsule!.createdAt!.year}',
-                          Icons.calendar_today,
-                        ),
-                        SizedBox(height: 16),
-                      ],
-
-                      // Expires Date
-                      if (_capsule!.expiresAt != null) ...[
-                        _buildInfoCard(
-                          'Expires',
-                          '${_capsule!.expiresAt!.day}/${_capsule!.expiresAt!.month}/${_capsule!.expiresAt!.year}',
-                          Icons.access_time,
-                        ),
-                        SizedBox(height: 16),
-                      ],
-
-                      // Final Video URL
-                      if (_capsule!.finalVideoUrl?.isNotEmpty == true) ...[
-                        _buildInfoCard(
-                          'Final Video',
-                          _capsule!.finalVideoUrl!,
-                          Icons.video_library,
-                        ),
-                        SizedBox(height: 16),
-                      ],
+                      ),
                     ],
                   ),
                 ),
     );
   }
 
-  Widget _buildInfoCard(String title, String value, IconData icon) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.blue.shade600),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDatesCard() {
+  // New unified info section card
+  Widget _buildInfoSection() {
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(Icons.cake, color: Colors.blue.shade600),
-                SizedBox(width: 12),
-                Text(
-                  'Important Dates',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+            Text(
+              'Capsule Information',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
             SizedBox(height: 12),
-            if (_capsule!.dateOfBirth?.isNotEmpty == true) ...[
-              Row(
-                children: [
-                  Icon(Icons.cake, size: 16, color: Colors.grey[600]),
-                  SizedBox(width: 8),
-                  Text('Birth: ${_capsule!.dateOfBirth}'),
-                ],
+            if (_capsule!.dateOfBirth?.isNotEmpty == true)
+              _buildInfoRow(
+                  'Date of Birth', _capsule!.dateOfBirth!, Icons.cake),
+            if (_capsule!.dateOfDeath?.isNotEmpty == true)
+              _buildInfoRow(
+                  'Date of Death', _capsule!.dateOfDeath!, Icons.event),
+            if (_capsule!.language?.isNotEmpty == true)
+              _buildInfoRow('Language', _capsule!.language!, Icons.language),
+            if (_capsule!.familyEmail?.isNotEmpty == true)
+              _buildInfoRow(
+                  'Family Email', _capsule!.familyEmail!, Icons.email),
+            if (_capsule!.scheduledDate != null)
+              _buildInfoRow(
+                'Scheduled Date',
+                '${_capsule!.scheduledDate!.day}/${_capsule!.scheduledDate!.month}/${_capsule!.scheduledDate!.year}',
+                Icons.schedule,
               ),
-              SizedBox(height: 8),
-            ],
-            if (_capsule!.dateOfDeath?.isNotEmpty == true) ...[
-              Row(
-                children: [
-                  Icon(Icons.event, size: 16, color: Colors.grey[600]),
-                  SizedBox(width: 8),
-                  Text('Death: ${_capsule!.dateOfDeath}'),
-                ],
+            if (_capsule!.createdAt != null)
+              _buildInfoRow(
+                'Created',
+                '${_capsule!.createdAt!.day}/${_capsule!.createdAt!.month}/${_capsule!.createdAt!.year}',
+                Icons.calendar_today,
               ),
-            ],
+            if (_capsule!.expiresAt != null)
+              _buildInfoRow(
+                'Expires',
+                '${_capsule!.expiresAt!.day}/${_capsule!.expiresAt!.month}/${_capsule!.expiresAt!.year}',
+                Icons.access_time,
+              ),
+            if (_capsule!.finalVideoUrl?.isNotEmpty == true)
+              _buildInfoRow(
+                  'Final Video', _capsule!.finalVideoUrl!, Icons.video_library),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.blue.shade600),
+          SizedBox(width: 8),
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
       ),
     );
   }
@@ -267,5 +220,45 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
 
   void _editCapsule() {
     context.push('/admin/edit-capsule', extra: _capsule);
+  }
+
+  Future<void> _generateMemorialPdf() async {
+    if (_capsule == null) return;
+
+    // Build public URL similar to family capsule page logic
+    final origin = Uri.base.origin;
+    final publicUrl = '$origin/capsule/${_capsule!.id}';
+
+    try {
+      String? logoUrl;
+      try {
+        final settings = await SettingsService.getAdminSettings();
+        logoUrl = settings?.logoImage;
+      } catch (_) {}
+
+      await PdfService.downloadMemorialPdf(
+        capsuleName: _capsule!.name ?? 'Capsule',
+        qrData: publicUrl,
+        logoUrl: logoUrl,
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Memorial PDF generated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate PDF: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

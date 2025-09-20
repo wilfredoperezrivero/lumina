@@ -2,6 +2,59 @@
 
 A Flutter web application for managing Lumina Memorial capsules - digital time capsules for preserving memories and messages for loved ones.
 
+## Repository overview for new contributors
+
+### High-level purpose
+- Lumina Admin is a Flutter web application that lets memorial administrators create and manage digital “capsules”, invite family members, purchase credit packs, and oversee branding/assets on top of a Supabase backend and Lemonsqueezy e-commerce integration.
+- The wider Lumina platform also includes family- and invitee-facing experiences plus an external video generation service, all coordinated through the same Supabase project.
+
+### Repository structure at a glance
+- `lib/` contains the Flutter application split into the entrypoint (`main.dart`), feature pages (`pages/`), data models (`models/`), and service classes for Supabase and storage interactions (`services/`).
+- `database/` holds SQL definitions for core tables (admins, capsules, messages, packs), helper functions, triggers, and queue integrations that enforce credits, welcome packs, and video processing workflows.
+- `functions/` includes Supabase Edge Functions for automating family account creation and processing Lemonsqueezy purchase webhooks.
+- Supporting assets (brand imagery and PDF backgrounds), deployment/build scripts, and Supabase CLI configuration live in the project root (`assets/`, `dev.sh`, `build.sh`, `deploy.sh`, `supabase/config.toml`, etc.).
+
+### Flutter web app flow
+- `main.dart` bootstraps Flutter, loads environment variables, initializes Supabase, and wires up a `GoRouter` configuration to handle admin, family, and public routes while enforcing auth- and role-based redirects. It also listens for recovery links via `uni_links` to support password resets.
+- Riverpod’s `ProviderScope` wraps the app for state management, though most services are used via static helpers; `AuthService.authStateChanges()` feeds GoRouter’s `refreshListenable` so navigation reacts to Supabase auth events.
+
+### Feature highlights by audience
+#### Admin experience
+- The dashboard offers quick navigation cards into capsule creation, listings, pack purchases, settings, and marketing tools, and includes logout controls tied to Supabase auth.
+- Capsule creation validates available credits, captures memorial metadata, provisions a family account through an edge function, and then inserts the capsule record via `CapsuleService`. Clear error handling guides admins when API keys or responses are missing.
+- Capsule lists support filtering, infinite scroll, quick access to capsule detail screens, and display status/family context for each record.
+- Capsule detail pages collate metadata, expose a PDF export that overlays an optional admin logo, and link into editing flows.
+- Settings let admins manage contact information, branding, and logo uploads (with resizing and Supabase storage integration).
+- The “Buy Packs” page builds Lemonsqueezy checkout URLs with admin metadata and lists available bundles.
+
+#### Family experience
+- `FamilyCapsulePage` fetches the single capsule linked to the logged-in family user, shows memorial info, shares a QR/public URL, and exposes the “close capsule and trigger video generation” workflow that enqueues work in Supabase.
+- `FamilyMessagesPage` lists capsule messages with pagination, moderation toggles, and quick links to media content, again scoped to the user’s assigned capsule.
+
+#### Public invitees
+- The public capsule page (routed via `/capsule/:id`) welcomes contributors, loads capsule context, and lets visitors submit text plus optional audio, video, or image attachments using Supabase storage helpers before creating a message record.
+
+### Shared services and data models
+- Service classes wrap Supabase operations: `AuthService` for sign-in/out and password resets, `CapsuleService` for CRUD plus role-aware queries and video job RPCs, `CreditsService` to check available credits, `MessageService` for paginated message management, `SettingsService` for profile data and logo uploads, `AdminService` for personalizing UI, `MediaUploadService` for binary uploads, and `PdfService` for generating branded memorial PDFs.
+- Data models map Supabase rows to Dart objects for capsules (including invitation and message variants), messages, packs, and admin settings, providing JSON serialization helpers used throughout the services.
+
+### Backend & integrations
+- SQL scripts define tables and relationships, plus helper functions for credit bookkeeping (`update_admin_credits`), triggers that automatically recompute credits when packs or capsules change, a video job queue backed by PGMQ, and admin onboarding that grants a welcome pack.
+- Edge functions enable frontend flows that require elevated permissions: one signs up family users via Supabase auth with role metadata, and another logs Lemonsqueezy webhooks, infers pack sizes, and upserts credits into `packs`.
+- The video service integration guide documents how an external worker should consume the `video_jobs_queue`, assemble capsule content, and update Supabase once a memorial video is ready—critical reading before extending or operating the pipeline.
+- `lumina.md` outlines how this admin app fits with other Lumina surfaces (funeral home UI, invitee portal, video service), helping you coordinate changes across products.
+
+### Tooling, dependencies, and configuration
+- `pubspec.yaml` lists core Flutter dependencies (Supabase Flutter SDK, Riverpod, GoRouter, multimedia helpers, DotEnv) and registers bundled assets including the `.env` file for runtime configuration.
+- Shell scripts streamline development (`dev.sh` runs Flutter Web on port 3000), production builds, and Cloudflare Pages deployment.
+- The Supabase CLI config (`supabase/config.toml`) enables local replication of the hosted environment; pair it with the SQL files to apply schema locally when needed.
+
+### What to learn next
+- Follow the video service guide to understand how closing a capsule triggers downstream video rendering and what responsibilities the external worker bears.
+- Dive into the SQL helpers (especially the credit functions and video queue RPCs) to see how business rules are enforced at the database layer before adjusting capsule creation or purchasing flows.
+- Review the edge functions to grasp how Supabase service role keys and REST endpoints are used so you can confidently extend automation (for example, sending transactional emails or syncing CRM data).
+- Explore related apps described in `lumina.md` to align UI/UX changes across admin, family, and invitee experiences and ensure consistent data contracts.
+
 ## Features
 
 ### Authentication & User Management

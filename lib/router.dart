@@ -91,9 +91,11 @@ GoRouter buildRouter([String? initialRoute]) {
     redirect: (context, state) {
       final fragment = Uri.base.fragment;
       final fullUrl = Uri.base.toString();
+      final signupRedirect = AuthService.isSignupRedirect(Uri.base);
       final hasAuthTokens = _looksLikeAuthToken(fragment) ||
           fullUrl.contains('access_token=') ||
-          fullUrl.contains('token_type=bearer');
+          fullUrl.contains('token_type=bearer') ||
+          signupRedirect;
 
       final user = Supabase.instance.client.auth.currentUser;
       final session = Supabase.instance.client.auth.currentSession;

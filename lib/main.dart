@@ -5,6 +5,7 @@ import 'router.dart';
 import 'package:uni_links/uni_links.dart';
 import 'dart:async';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/auth_service.dart';
 
 // Removed page imports moved to router.dart
 
@@ -17,6 +18,13 @@ Future<void> main() async {
   );
   // Listen for incoming links for password reset
   final initialLink = await getInitialLink();
+  if (initialLink != null) {
+    final uri = Uri.tryParse(initialLink);
+    if (uri != null) {
+      await AuthService.maybeCompleteSignup(uri);
+    }
+  }
+  await AuthService.maybeCompleteSignup(Uri.base);
   if (initialLink != null && initialLink.contains('type=recovery')) {
     runApp(
         const ProviderScope(child: LuminaApp(initialRoute: '/reset-password')));

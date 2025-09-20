@@ -26,8 +26,7 @@ class _LoginPageState extends State<LoginPage> {
     final user = Supabase.instance.client.auth.currentUser;
     final session = Supabase.instance.client.auth.currentSession;
     if (user != null && session != null && !session.isExpired) {
-      final role =
-          (user.userMetadata?['role'] ?? user.appMetadata['role']) ?? 'admin';
+      final role = AuthService.resolveUserRole(user);
       Future.microtask(() {
         if (mounted) {
           context.go(role == 'family' ? '/family/capsule' : '/admin/dashboard');
@@ -50,11 +49,17 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      await AuthService.signIn(_emailController.text, _passwordController.text);
-      // Navigate to dashboard after successful login
-      if (mounted) {
-        context.go('/admin/dashboard');
-      }
+      final user =
+          await AuthService.signIn(_emailController.text, _passwordController.text);
+      final role = AuthService.resolveUserRole(user);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      context.go(role == 'family' ? '/family/capsule' : '/admin/dashboard');
     } catch (e) {
       if (mounted) {
         String errorMsg = 'Login failed: ${e.toString()}';

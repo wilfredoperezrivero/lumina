@@ -43,8 +43,17 @@ serve(async (req) => {
       headers: corsHeaders,
     });
   }
-  return new Response(JSON.stringify(data), {
-    status: 200,
-    headers: corsHeaders,
-  });
+
+  return new Response(
+    JSON.stringify({
+      message:
+        'Magic-link email sent. The family user must click the link to complete sign-up.',
+      user: data.user, // may be null until email is confirmed
+      session: data.session,
+    }),
+    {
+      status: 200,
+      headers: corsHeaders,
+    }
+  );
 });

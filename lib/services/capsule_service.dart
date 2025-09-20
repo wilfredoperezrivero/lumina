@@ -69,7 +69,7 @@ class CapsuleService {
     if (user == null) throw Exception('User not authenticated');
 
     // Check user role
-    final userRole = user.userMetadata?['role'] ?? 'admin';
+    final userRole = AuthService.resolveUserRole(user);
 
     if (userRole == 'admin') {
       // Admin can see all their capsules
@@ -101,7 +101,7 @@ class CapsuleService {
     if (user == null) throw Exception('User not authenticated');
 
     // Check user role
-    final userRole = user.userMetadata?['role'] ?? 'admin';
+    final userRole = AuthService.resolveUserRole(user);
 
     final offset = page * pageSize;
 
@@ -134,7 +134,7 @@ class CapsuleService {
     if (user == null) throw Exception('User not authenticated');
 
     // Check user role
-    final userRole = user.userMetadata?['role'] ?? 'admin';
+    final userRole = AuthService.resolveUserRole(user);
 
     if (userRole == 'admin') {
       // Admin can see all their capsules

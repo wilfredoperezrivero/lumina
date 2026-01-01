@@ -6,11 +6,6 @@ import '../../models/capsule.dart';
 import '../../services/capsule_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:typed_data';
-import 'dart:ui' as ui;
-import 'package:flutter/rendering.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 
 class FamilyCapsulePage extends StatefulWidget {
   @override

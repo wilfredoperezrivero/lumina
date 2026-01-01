@@ -48,7 +48,7 @@ class MediaUploadService {
     final storage = Supabase.instance.client.storage;
     try {
       final bytes = await file.readAsBytes();
-      final upload = await storage.from('media').uploadBinary(path, bytes);
+      await storage.from('media').uploadBinary(path, bytes);
       final publicUrl = storage.from('media').getPublicUrl(path);
       return publicUrl;
     } catch (e) {
@@ -58,7 +58,6 @@ class MediaUploadService {
 
   static Future<String> uploadImage(
       File file, String fileName, String capsuleId) async {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
     final path = 'c/$capsuleId/$fileName';
     final storage = Supabase.instance.client.storage;
 

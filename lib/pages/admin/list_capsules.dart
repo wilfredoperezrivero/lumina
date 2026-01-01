@@ -382,49 +382,6 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
     }
   }
 
-  IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'draft':
-        return Icons.edit;
-      case 'active':
-        return Icons.account_box;
-      case 'completed':
-        return Icons.check;
-      default:
-        return Icons.help;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  void _handleMenuAction(String action, Capsule capsule) {
-    switch (action) {
-      case 'view':
-        // TODO: Navigate to capsule details page
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('View details for ${capsule.name ?? '(No Name)'}')),
-        );
-        break;
-      case 'edit':
-        // TODO: Navigate to edit capsule page
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Edit ${capsule.name ?? '(No Name)'}')),
-        );
-        break;
-      case 'messages':
-        // TODO: Navigate to messages page
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('View messages for ${capsule.name ?? '(No Name)'}')),
-        );
-        break;
-    }
-  }
-
   void _openCapsule(Capsule capsule) {
     context.go('/admin/capsule_details', extra: capsule);
   }

@@ -46,7 +46,7 @@ class CapsuleService {
               'scheduled_date': scheduledDate.toIso8601String(),
           })
           .select()
-          .single();
+          .maybeSingle();
 
       print('DEBUG: Database response: $response');
       if (response == null) {
@@ -71,7 +71,7 @@ class CapsuleService {
     // Check user role
     final userRole = AuthService.resolveUserRole(user);
 
-    if (userRole == 'admin') {
+    if (userRole == UserRole.admin) {
       // Admin can see all their capsules
       final response = await _supabase
           .from('capsules')
@@ -136,7 +136,7 @@ class CapsuleService {
     // Check user role
     final userRole = AuthService.resolveUserRole(user);
 
-    if (userRole == 'admin') {
+    if (userRole == UserRole.admin) {
       // Admin can see all their capsules
       final response =
           await _supabase.from('capsules').select('*').eq('admin_id', user.id);
@@ -175,8 +175,11 @@ class CapsuleService {
 
   // Get capsule by ID (public access)
   static Future<Capsule> getCapsuleById(String capsuleId) async {
-    final response =
-        await _supabase.from('capsules').select().eq('id', capsuleId).single();
+    final response = await _supabase
+        .from('capsules')
+        .select()
+        .eq('id', capsuleId)
+        .maybeSingle();
 
     if (response == null) throw Exception('Capsule not found');
     return Capsule.fromJson(response);
@@ -200,7 +203,7 @@ class CapsuleService {
         .select()
         .eq('id', capsuleId)
         .eq('admin_id', user.id)
-        .single();
+        .maybeSingle();
 
     if (capsule == null) throw Exception('Capsule not found or access denied');
 

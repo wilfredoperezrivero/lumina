@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../services/capsule_service.dart';
-import '../../services/credits_service.dart';
 import '../../services/auth_service.dart';
-import '../../models/capsule.dart';
+import '../../services/credits_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class CreateCapsulePage extends StatefulWidget {
@@ -405,14 +404,23 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
       final newUser = jsonDecode(response.body);
       print('DEBUG: Parsed JSON: $newUser');
 
-      // Check if the response has the expected structure
-      if (newUser == null ||
-          newUser['user'] == null ||
-          newUser['user']['id'] == null) {
-        print('DEBUG: Invalid response structure');
+      // Check if the response indicates success
+      if (newUser == null || newUser['success'] != true) {
+        print('DEBUG: API did not return success');
         setState(() {
           _errorMessage =
-              'Invalid response from user creation API: ${response.body}';
+              'Failed to create user: ${newUser?['message'] ?? 'Unknown error'}';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Check if we have user data with an ID
+      if (newUser['user'] == null || newUser['user']['id'] == null) {
+        print('DEBUG: No user ID in response');
+        setState(() {
+          _errorMessage =
+              'User creation succeeded but no user ID returned. Magic link was sent to ${_familyEmailController.text}. Please try creating the capsule again after the user logs in.';
           _isLoading = false;
         });
         return;
@@ -452,16 +460,7 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
         status: 'active',
       );
 
-      print('DEBUG: Capsule created: ${capsule?.id}');
-      if (capsule == null) {
-        print('DEBUG: Capsule is null');
-        setState(() {
-          _errorMessage =
-              'Failed to create capsule: No response from capsule service';
-          _isLoading = false;
-        });
-        return;
-      }
+      print('DEBUG: Capsule created: ${capsule.id}');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

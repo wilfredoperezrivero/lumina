@@ -11,8 +11,11 @@ class SettingsService {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
-    final response =
-        await _client.from('admins').select().eq('admin_id', user.id).single();
+    final response = await _client
+        .from('admins')
+        .select()
+        .eq('admin_id', user.id)
+        .maybeSingle();
 
     if (response == null) return null;
     return Settings.fromJson(response);

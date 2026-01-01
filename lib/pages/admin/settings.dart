@@ -24,7 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _errorMessage;
   String? _logoUrl;
   Uint8List? _selectedLogoBytes;
-  String? _selectedLogoFileName;
+
   String? _selectedLanguage;
 
   final List<String> _languages = [
@@ -90,7 +90,6 @@ class _SettingsPageState extends State<SettingsPage> {
         if (file.bytes != null) {
           setState(() {
             _selectedLogoBytes = file.bytes!;
-            _selectedLogoFileName = file.name;
             _logoUrl = null; // Clear existing logo URL
           });
         }
@@ -141,7 +140,6 @@ class _SettingsPageState extends State<SettingsPage> {
         _currentSettings = settings;
         _logoUrl = logoImageUrl;
         _selectedLogoBytes = null;
-        _selectedLogoFileName = null;
         _isSaving = false;
       });
 
@@ -348,7 +346,6 @@ class _SettingsPageState extends State<SettingsPage> {
                                           setState(() {
                                             _logoUrl = null;
                                             _selectedLogoBytes = null;
-                                            _selectedLogoFileName = null;
                                           });
                                         },
                                         child: Text('Remove Logo'),

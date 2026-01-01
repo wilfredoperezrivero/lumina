@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../services/auth_service.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../services/auth_service.dart';
+import '../../router.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -10,38 +11,53 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
   bool _isLoading = false;
-  String? _errorMessage;
+  bool _obscurePassword = true;
   bool _gdprAccepted = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _redirectIfLoggedIn();
+    _checkAuthAndRedirect();
   }
 
-  void _redirectIfLoggedIn() {
-    final user = Supabase.instance.client.auth.currentUser;
-    final session = Supabase.instance.client.auth.currentSession;
-    if (user != null && session != null && !session.isExpired) {
-      final role = AuthService.resolveUserRole(user);
-      Future.microtask(() {
-        if (mounted) {
-          context.go(role == 'family' ? '/family/capsule' : '/admin/dashboard');
-        }
-      });
-    }
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
-  Future<void> _login() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      setState(() {
-        _errorMessage = 'Please enter both email and password';
-      });
-      return;
-    }
+  /// Check if user is already authenticated and redirect to appropriate dashboard
+  void _checkAuthAndRedirect() {
+    if (!AuthService.isAuthenticated()) return;
+
+    final role = AuthService.getCurrentUserRole();
+    if (role == null) return;
+
+    // Use microtask to avoid navigating during build
+    Future.microtask(() {
+      if (!mounted) return;
+      switch (role) {
+        case UserRole.admin:
+          context.go(AppRoutes.adminDashboard);
+          break;
+        case UserRole.family:
+          context.go(AppRoutes.familyCapsule);
+          break;
+      }
+    });
+  }
+
+  /// Handle login form submission
+  Future<void> _handleLogin() async {
+    // Validate form
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
@@ -49,38 +65,157 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final user =
-          await AuthService.signIn(_emailController.text, _passwordController.text);
+      final user = await AuthService.signIn(
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      if (!mounted) return;
+
       final role = AuthService.resolveUserRole(user);
 
+      setState(() => _isLoading = false);
+
+      if (role == null) {
+        // User has no role assigned
+        setState(() {
+          _errorMessage = 'Your account has no role assigned. Please contact support.';
+        });
+        await AuthService.signOut();
+        return;
+      }
+
+      // Navigate based on role
+      switch (role) {
+        case UserRole.admin:
+          context.go(AppRoutes.adminDashboard);
+          break;
+        case UserRole.family:
+          context.go(AppRoutes.familyCapsule);
+          break;
+      }
+    } catch (e) {
       if (!mounted) return;
 
       setState(() {
         _isLoading = false;
+        _errorMessage = _parseLoginError(e.toString());
       });
+    }
+  }
 
-      context.go(role == 'family' ? '/family/capsule' : '/admin/dashboard');
-    } catch (e) {
-      if (mounted) {
-        String errorMsg = 'Login failed: ${e.toString()}';
+  /// Parse error messages into user-friendly text
+  String _parseLoginError(String error) {
+    if (error.contains('Invalid login credentials')) {
+      return 'Invalid email or password. Please check your credentials.';
+    }
+    if (error.contains('Email not confirmed')) {
+      return 'Please confirm your email address before logging in.';
+    }
+    if (error.contains('400')) {
+      return 'Login error. Please verify your email or try again.';
+    }
+    if (error.contains('network') || error.contains('connection')) {
+      return 'Network error. Please check your internet connection.';
+    }
+    return 'Login failed. Please try again.';
+  }
 
-        // Provide more specific error messages
-        if (e.toString().contains('Invalid login credentials')) {
-          errorMsg =
-              'Invalid email or password. Please check your credentials.';
-        } else if (e.toString().contains('Email not confirmed')) {
-          errorMsg =
-              'Please check your email and confirm your account before logging in.';
-        } else if (e.toString().contains('400')) {
-          errorMsg =
-              'Login error (400). Please check your email confirmation or try again.';
-        }
+  /// Show password reset dialog
+  Future<void> _showPasswordResetDialog() async {
+    final resetEmailController = TextEditingController(text: _emailController.text);
+    bool isSending = false;
+    String? dialogError;
 
-        setState(() {
-          _errorMessage = errorMsg;
-          _isLoading = false;
-        });
-      }
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Reset Password'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Enter your email to receive a password reset link.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: resetEmailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                enabled: !isSending,
+              ),
+              if (dialogError != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  dialogError!,
+                  style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSending ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSending
+                  ? null
+                  : () async {
+                      final email = resetEmailController.text.trim();
+                      if (email.isEmpty) {
+                        setDialogState(() => dialogError = 'Please enter your email');
+                        return;
+                      }
+
+                      setDialogState(() {
+                        isSending = true;
+                        dialogError = null;
+                      });
+
+                      try {
+                        await AuthService.sendPasswordResetEmail(email);
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Password reset email sent! Check your inbox.'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() {
+                          isSending = false;
+                          dialogError = 'Failed to send reset email. Please try again.';
+                        });
+                      }
+                    },
+              child: isSending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Send'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    resetEmailController.dispose();
+  }
+
+  /// Open privacy policy URL
+  Future<void> _openPrivacyPolicy() async {
+    final url = Uri.parse('https://luminamemorials.com/en/privacy-policy');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -88,202 +223,202 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login'),
+        title: const Text('Login'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/logo.png',
-                height: 100,
-                fit: BoxFit.contain,
-              ),
-              SizedBox(height: 24),
-              Text(
-                'Welcome to Lumina Memorials',
-                style: Theme.of(context).textTheme.headlineMedium,
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 32),
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                obscureText: true,
-                onSubmitted: (_) {
-                  if (_gdprAccepted && !_isLoading) {
-                    _login();
-                  }
-                },
-              ),
-              SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () async {
-                    final emailController =
-                        TextEditingController(text: _emailController.text);
-                    String? error;
-                    await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text('Reset Password'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                                'Enter your email to receive a password reset link.'),
-                            SizedBox(height: 16),
-                            TextField(
-                              controller: emailController,
-                              decoration: InputDecoration(
-                                labelText: 'Email',
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.emailAddress,
-                            ),
-                            if (error != null) ...[
-                              SizedBox(height: 8),
-                              Text(error!, style: TextStyle(color: Colors.red)),
-                            ]
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: Text('Cancel'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () async {
-                              try {
-                                await AuthService.sendPasswordResetEmail(
-                                    emailController.text);
-                                if (context.mounted) {
-                                  Navigator.of(context).pop();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content:
-                                            Text('Password reset email sent!')),
-                                  );
-                                }
-                              } catch (e) {
-                                error =
-                                    'Failed to send reset email: \\${e.toString()}';
-                                (context as Element).markNeedsBuild();
-                              }
-                            },
-                            child: Text('Send'),
-                          ),
-                        ],
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Logo
+                    Image.asset(
+                      'assets/logo.png',
+                      height: 100,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Title
+                    Text(
+                      'Welcome to Lumina Memorials',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Email field
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.email),
                       ),
-                    );
-                  },
-                  child: Text('Forgot Password?'),
-                ),
-              ),
-              SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Checkbox(
-                    value: _gdprAccepted,
-                    onChanged: (value) {
-                      setState(() {
-                        _gdprAccepted = value ?? false;
-                      });
-                    },
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () async {
-                        final url = Uri.parse(
-                            'https://luminamemorials.com/en/privacy-policy');
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url,
-                              mode: LaunchMode.externalApplication);
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      autocorrect: false,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        if (!value.contains('@')) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password field
+                    TextFormField(
+                      controller: _passwordController,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setState(() => _obscurePassword = !_obscurePassword);
+                          },
+                        ),
+                      ),
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) {
+                        if (_gdprAccepted && !_isLoading) {
+                          _handleLogin();
                         }
                       },
-                      child: RichText(
-                        text: TextSpan(
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          children: [
-                            TextSpan(text: 'I accept the '),
-                            TextSpan(
-                              text: 'Privacy Policy',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                decoration: TextDecoration.underline,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your password';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Forgot password link
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _showPasswordResetDialog,
+                        child: const Text('Forgot Password?'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // GDPR checkbox
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: _gdprAccepted,
+                          onChanged: (value) {
+                            setState(() => _gdprAccepted = value ?? false);
+                          },
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _openPrivacyPolicy,
+                            child: RichText(
+                              text: TextSpan(
+                                style: Theme.of(context).textTheme.bodyMedium,
+                                children: [
+                                  const TextSpan(text: 'I accept the '),
+                                  TextSpan(
+                                    text: 'Privacy Policy',
+                                    style: TextStyle(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                  const TextSpan(text: ' and consent to data processing (GDPR)'),
+                                ],
                               ),
                             ),
-                            TextSpan(
-                                text: ' and consent to data processing (GDPR)'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Error message
+                    if (_errorMessage != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red.shade700),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(color: Colors.red.shade700),
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16),
-              if (_errorMessage != null)
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade100,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(color: Colors.red.shade800),
-                  ),
-                ),
-              SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: (_isLoading || !_gdprAccepted) ? null : _login,
-                  child: _isLoading
-                      ? CircularProgressIndicator(color: Colors.white)
-                      : Text('Login'),
-                ),
-              ),
-              SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('New user?'),
-                  TextButton(
-                    onPressed: () => context.go('/admin/register'),
-                    child: Text(
-                      'Create Account',
-                      style: TextStyle(
-                        color: Colors.blue.shade600,
-                        fontWeight: FontWeight.w600,
+                    if (_errorMessage != null) const SizedBox(height: 16),
+
+                    // Login button
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: (_isLoading || !_gdprAccepted) ? null : _handleLogin,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('Login'),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+
+                    // Register link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('New user?'),
+                        TextButton(
+                          onPressed: () => context.go(AppRoutes.register),
+                          child: Text(
+                            'Create Account',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
       ),

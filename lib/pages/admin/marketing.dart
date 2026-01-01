@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../services/pdf_service.dart';
 import '../../services/settings_service.dart';
 import '../../models/settings.dart';
-import 'dart:io';
 
 class MarketingPage extends StatefulWidget {
   @override
@@ -51,7 +50,7 @@ class _MarketingPageState extends State<MarketingPage> {
     try {
       final logoUrl = _adminSettings?.logoImage;
 
-      final filePath = await PdfService.downloadPdf(
+      await PdfService.downloadPdf(
         language: language,
         logoUrl: logoUrl,
         adminName: _adminSettings?.name,
@@ -84,7 +83,7 @@ class _MarketingPageState extends State<MarketingPage> {
     try {
       final logoUrl = _adminSettings?.logoImage;
 
-      final filePath = await PdfService.downloadPng(
+      await PdfService.downloadPng(
         language: language,
         logoUrl: logoUrl,
         adminName: _adminSettings?.name,
@@ -501,7 +500,7 @@ class _MarketingPageState extends State<MarketingPage> {
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
           ),
           child: Column(
             children: [

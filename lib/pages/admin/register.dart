@@ -3,9 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
-import '../../services/auth_service.dart';
 import '../../services/settings_service.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AdminRegisterPage extends StatefulWidget {
   @override

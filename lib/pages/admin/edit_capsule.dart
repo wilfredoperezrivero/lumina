@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/capsule_service.dart';
 import '../../models/capsule.dart';
-import '../../services/auth_service.dart';
 
 class EditCapsulePage extends StatefulWidget {
   final Capsule capsule;

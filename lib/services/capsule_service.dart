@@ -105,7 +105,7 @@ class CapsuleService {
 
     final offset = page * pageSize;
 
-    if (userRole == 'admin') {
+    if (userRole == UserRole.admin) {
       // Admin can see all their capsules
       final response = await _supabase
           .from('capsules')

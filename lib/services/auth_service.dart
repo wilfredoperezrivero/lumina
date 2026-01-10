@@ -79,6 +79,15 @@ class AuthService extends ChangeNotifier {
     await Supabase.instance.client.auth.resetPasswordForEmail(email.trim());
   }
 
+  /// Send a magic link to the specified email for passwordless login
+  /// redirectUrl specifies where to redirect after successful login
+  static Future<void> sendMagicLink(String email, {String? redirectUrl}) async {
+    await Supabase.instance.client.auth.signInWithOtp(
+      email: email.trim(),
+      emailRedirectTo: redirectUrl,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Role Management
   // ---------------------------------------------------------------------------
@@ -233,6 +242,16 @@ class AuthService extends ChangeNotifier {
         fullUrl.contains('access_token=') ||
         fullUrl.contains('token_type=bearer') ||
         fragment.contains('eyJ'); // JWT prefix
+  }
+
+  /// Check if URL contains OTP expired error
+  static bool hasOtpExpiredError(Uri uri) {
+    final fragment = uri.fragment;
+    final fullUrl = uri.toString();
+    return fragment.contains('error=access_denied') ||
+        fragment.contains('error_code=otp_expired') ||
+        fragment.contains('otp_expired') ||
+        fullUrl.contains('error=access_denied&error_code=otp_expired');
   }
 
   /// Complete signup verification flow

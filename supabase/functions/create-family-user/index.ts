@@ -43,7 +43,7 @@ serve(async (req) => {
 
     console.log('Creating family user for:', email, 'capsule:', capsuleName);
 
-    // First, check if user already exists by listing users with email filter
+    // Check if user already exists
     const { data: listData } = await supabase.auth.admin.listUsers();
     const existingUser = listData?.users?.find((u: { email?: string }) => u.email === email);
 
@@ -53,31 +53,16 @@ serve(async (req) => {
       // User already exists, use their ID
       console.log('User already exists:', existingUser.id);
       userId = existingUser.id;
-
-      // Send magic link to existing user
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: 'https://app.luminamemorials.com/family/capsule',
-        },
-      });
-
-      if (otpError) {
-        console.error('Magic link error:', otpError);
-        return new Response(JSON.stringify({
-          error: otpError,
-          message: 'Failed to send magic link to existing user'
-        }), {
-          status: 400,
-          headers: corsHeaders,
-        });
-      }
     } else {
-      // Create new user with admin API and generate invite link
-      // This ensures the user gets a proper invite email with working login link
-      const { data: newUser, error: createError } = await supabase.auth.admin.inviteUserByEmail(email, {
-        redirectTo: 'https://app.luminamemorials.com/family/capsule',
-        data: {
+      // Create new user with admin API (no password - magic link only)
+      // Generate a random password that won't be used (magic link login only)
+      const randomPassword = crypto.randomUUID() + crypto.randomUUID();
+
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email,
+        password: randomPassword,
+        email_confirm: true, // Auto-confirm email so magic link works immediately
+        user_metadata: {
           role: 'family',
           capsule_name: capsuleName,
           display_name: `Capsule: ${capsuleName}`,
@@ -85,21 +70,45 @@ serve(async (req) => {
       });
 
       if (createError) {
-        console.error('User invitation error:', createError);
+        console.error('User creation error:', createError);
         return new Response(JSON.stringify({
           error: createError,
-          message: 'Failed to invite user'
+          message: 'Failed to create user'
         }), {
           status: 400,
           headers: corsHeaders,
         });
       }
 
-      console.log('User invited:', newUser.user.id);
+      console.log('User created:', newUser.user.id);
       userId = newUser.user.id;
     }
 
-    console.log('Magic link sent successfully');
+    // Send magic link to the user (works for both new and existing users)
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: 'https://app.luminamemorials.com/family/capsule',
+      },
+    });
+
+    if (otpError) {
+      console.error('Magic link error:', otpError);
+      return new Response(JSON.stringify({
+        success: true, // User was created, just magic link failed
+        message: 'User created but failed to send magic link. You can resend from capsule details.',
+        user: {
+          id: userId,
+          email: email,
+        },
+        warning: otpError.message,
+      }), {
+        status: 200,
+        headers: corsHeaders,
+      });
+    }
+
+    console.log('Magic link sent successfully to:', email);
 
     return new Response(JSON.stringify({
       success: true,

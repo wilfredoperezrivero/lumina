@@ -15,14 +15,19 @@ Future<void> main() async {
   // Load environment variables
   await dotenv.load();
 
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-    authOptions: const FlutterAuthClientOptions(
-      authFlowType: AuthFlowType.implicit,
-    ),
-  );
+  // Initialize Supabase - wrap in try-catch to handle expired tokens
+  try {
+    await Supabase.initialize(
+      url: dotenv.env['SUPABASE_URL']!,
+      anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.implicit,
+      ),
+    );
+  } catch (e) {
+    debugPrint('Supabase initialization error (may be expired token): $e');
+    // Continue anyway - we'll handle the auth state below
+  }
 
   // Determine initial route based on auth state
   String? initialRoute = await _handleAuthRedirect();
@@ -42,29 +47,86 @@ Future<String?> _handleAuthRedirect() async {
   if (kIsWeb) {
     // Web: Check Uri.base for auth tokens
     final uri = Uri.base;
+    final fullUrl = uri.toString();
+    final fragment = uri.fragment;
 
     debugPrint('=== AUTH REDIRECT ===');
-    debugPrint('URL: ${uri.toString()}');
+    debugPrint('URL: $fullUrl');
+    debugPrint('Fragment: $fragment');
 
     // Handle password recovery flow
     if (AuthService.isRecoveryRedirect(uri)) {
       initialRoute = AppRoutes.resetPassword;
       debugPrint('Recovery redirect detected');
+      return initialRoute;
     }
 
+    // Check for OTP expired error in URL fragment
+    if (AuthService.hasOtpExpiredError(uri)) {
+      debugPrint('OTP expired error detected in URL - redirecting to family login');
+      return AppRoutes.familyLogin;
+    }
+
+    // Check if this is a magic link redirect
+    // Magic links come with access_token in fragment OR have /family/capsule in the URL
+    final hasAuthTokensInUrl = fullUrl.contains('access_token') ||
+        fragment.contains('access_token') ||
+        fullUrl.contains('token_type=bearer') ||
+        fragment.contains('token_type=bearer');
+
+    final hasOtpError = AuthService.hasOtpExpiredError(uri);
+    final isFamilyRedirectUrl = fullUrl.contains('/family/capsule') && !hasOtpError;
+    final isMagicLinkUrl = hasAuthTokensInUrl || isFamilyRedirectUrl;
+
+    debugPrint('Has auth tokens: $hasAuthTokensInUrl');
+    debugPrint('Is family redirect: $isFamilyRedirectUrl');
+    debugPrint('Is magic link URL: $isMagicLinkUrl');
+
     // Check if fragment contains access_token (implicit flow)
-    if (AuthService.hasAuthTokens(uri)) {
+    if (hasAuthTokensInUrl) {
       debugPrint('Auth tokens detected in URL');
       // Supabase should have auto-handled this during initialize
       final session = AuthService.currentSession();
       if (session != null) {
         debugPrint('Session established: ${session.user.email}');
+      } else {
+        debugPrint('No session after token detection - token may be expired');
       }
     }
 
     // Try to complete auth from URL (handles invite, signup, magiclink with token param)
-    final authCompleted = await AuthService.maybeCompleteAuth(uri);
-    debugPrint('Auth completed via maybeCompleteAuth: $authCompleted');
+    try {
+      final authCompleted = await AuthService.maybeCompleteAuth(uri);
+      debugPrint('Auth completed via maybeCompleteAuth: $authCompleted');
+    } catch (e) {
+      debugPrint('Auth completion failed (token may be expired): $e');
+      // Don't fail - user might already be logged in from a previous session
+    }
+
+    // After attempting auth, check if user is now authenticated
+    final isAuthenticated = AuthService.isAuthenticated();
+    debugPrint('Is authenticated: $isAuthenticated');
+
+    if (isAuthenticated) {
+      final role = AuthService.getCurrentUserRole();
+      debugPrint('User authenticated with role: $role');
+
+      // Redirect authenticated user to appropriate home
+      if (role == UserRole.family) {
+        initialRoute = AppRoutes.familyCapsule;
+      } else if (role == UserRole.admin) {
+        initialRoute = AppRoutes.adminDashboard;
+      }
+    } else {
+      debugPrint('User not authenticated after redirect handling');
+      // If this was a magic link URL but auth failed, show family login page
+      if (isMagicLinkUrl) {
+        debugPrint('Magic link expired or invalid - redirecting to family login');
+        initialRoute = AppRoutes.familyLogin;
+      }
+    }
+
+    debugPrint('Initial route: $initialRoute');
     debugPrint('=== END AUTH REDIRECT ===');
   } else {
     // Mobile: Use uni_links for deep linking
@@ -76,9 +138,30 @@ Future<String?> _handleAuthRedirect() async {
           // Handle password recovery
           if (AuthService.isRecoveryRedirect(uri)) {
             initialRoute = AppRoutes.resetPassword;
+          } else {
+            // Complete any other auth flows
+            try {
+              await AuthService.maybeCompleteAuth(uri);
+            } catch (e) {
+              debugPrint('Auth completion failed: $e');
+            }
+
+            // Check if user is authenticated and set route
+            if (AuthService.isAuthenticated()) {
+              final role = AuthService.getCurrentUserRole();
+              if (role == UserRole.family) {
+                initialRoute = AppRoutes.familyCapsule;
+              } else if (role == UserRole.admin) {
+                initialRoute = AppRoutes.adminDashboard;
+              }
+            } else {
+              // Check if this looks like a magic link URL
+              final fullUrl = uri.toString();
+              if (fullUrl.contains('access_token') || fullUrl.contains('/family/')) {
+                initialRoute = AppRoutes.familyLogin;
+              }
+            }
           }
-          // Complete any other auth flows
-          await AuthService.maybeCompleteAuth(uri);
         }
       }
     } catch (e) {

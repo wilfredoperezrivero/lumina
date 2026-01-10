@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../services/capsule_service.dart';
 import '../../models/capsule.dart';
 
@@ -64,11 +65,15 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
         title: Text('Edit Capsule'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.home),
-            onPressed: () => Navigator.of(context).pop(),
-            tooltip: 'Go Back',
+            onPressed: () => context.go('/admin/dashboard'),
+            tooltip: 'Go to Dashboard',
           ),
         ],
       ),

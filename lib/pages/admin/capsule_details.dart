@@ -3,6 +3,7 @@ import '../../models/capsule.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/pdf_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/auth_service.dart';
 
 class CapsuleDetailsPage extends StatefulWidget {
   final Capsule capsule;
@@ -15,6 +16,7 @@ class CapsuleDetailsPage extends StatefulWidget {
 class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
   Capsule? _capsule;
   bool _isLoading = true;
+  bool _isSendingMagicLink = false;
 
   @override
   void initState() {
@@ -30,6 +32,10 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
         title: Text('Capsule Details'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => context.go('/admin/list_capsules'),
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.edit),
@@ -38,8 +44,8 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
           ),
           IconButton(
             icon: Icon(Icons.home),
-            onPressed: () => Navigator.of(context).pop(),
-            tooltip: 'Go Back',
+            onPressed: () => context.go('/admin/dashboard'),
+            tooltip: 'Go to Dashboard',
           ),
         ],
       ),
@@ -103,6 +109,38 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
                       _buildInfoSection(),
 
                       SizedBox(height: 24),
+
+                      // Resend Magic Link Button (only if family email exists)
+                      if (_capsule!.familyEmail?.isNotEmpty == true)
+                        Center(
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _isSendingMagicLink ? null : _resendMagicLink,
+                              icon: _isSendingMagicLink
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Icon(Icons.email),
+                              label: Text(_isSendingMagicLink
+                                  ? 'Sending...'
+                                  : 'Resend Login Link to Family'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange.shade600,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      if (_capsule!.familyEmail?.isNotEmpty == true)
+                        SizedBox(height: 12),
 
                       // Generate PDF Button at bottom
                       Center(
@@ -220,6 +258,41 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
 
   void _editCapsule() {
     context.push('/admin/edit-capsule', extra: _capsule);
+  }
+
+  Future<void> _resendMagicLink() async {
+    if (_capsule?.familyEmail == null || _capsule!.familyEmail!.isEmpty) return;
+
+    setState(() => _isSendingMagicLink = true);
+
+    try {
+      await AuthService.sendMagicLink(
+        _capsule!.familyEmail!,
+        redirectUrl: 'https://app.luminamemorials.com/family/capsule',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login link sent to ${_capsule!.familyEmail}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send login link: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSendingMagicLink = false);
+      }
+    }
   }
 
   Future<void> _generateMemorialPdf() async {

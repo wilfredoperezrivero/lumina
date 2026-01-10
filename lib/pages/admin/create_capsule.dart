@@ -71,6 +71,17 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
         title: Text('Create New Capsule'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => context.go('/admin/dashboard'),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.home),
+            onPressed: () => context.go('/admin/dashboard'),
+            tooltip: 'Go to Dashboard',
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -462,10 +473,12 @@ class _CreateCapsulePageState extends State<CreateCapsulePage> {
 
       print('DEBUG: Capsule created: ${capsule.id}');
 
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Capsule created successfully! Email sent to ${_familyEmailController.text}'),
+              'Capsule created! Login link sent to ${_familyEmailController.text}'),
           backgroundColor: Colors.green,
         ),
       );

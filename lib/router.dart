@@ -6,7 +6,9 @@ import 'services/auth_service.dart';
 
 // Auth Pages
 import 'pages/auth/login.dart';
+import 'pages/auth/family_login.dart';
 import 'pages/auth/reset_password.dart';
+import 'pages/auth/link_expired.dart';
 
 // Public Pages (Capsule - no auth required)
 import 'pages/public/capsule.dart';
@@ -36,8 +38,10 @@ import 'models/capsule.dart';
 class AppRoutes {
   // Auth routes
   static const login = '/login';
+  static const familyLogin = '/family/login';
   static const register = '/admin/register';
   static const resetPassword = '/reset-password';
+  static const linkExpired = '/link-expired';
 
   // Public routes (capsule - no auth)
   static const capsule = '/capsule/:id';
@@ -79,6 +83,12 @@ GoRouter buildRouter([String? initialRoute]) {
     redirect: (context, state) {
       final location = state.uri.toString();
       final path = state.uri.path;
+
+      // Check for OTP expired error - redirect to family login
+      if (AuthService.hasOtpExpiredError(state.uri)) {
+        debugPrint('OTP expired error detected - redirecting to family login');
+        return AppRoutes.familyLogin;
+      }
 
       // Handle malformed auth redirect URLs
       if (_isAuthTokenLocation(location)) {
@@ -152,8 +162,22 @@ GoRouter buildRouter([String? initialRoute]) {
         builder: (context, state) => LoginPage(),
       ),
       GoRoute(
+        path: AppRoutes.familyLogin,
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'];
+          return FamilyLoginPage(email: email);
+        },
+      ),
+      GoRoute(
         path: AppRoutes.resetPassword,
         builder: (context, state) => ResetPasswordPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.linkExpired,
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'];
+          return LinkExpiredPage(email: email);
+        },
       ),
 
       // ===== Public Routes (Capsule - No Auth Required) =====
@@ -224,11 +248,34 @@ GoRouter buildRouter([String? initialRoute]) {
         path: '/:path(.*)',
         builder: (context, state) {
           final path = state.pathParameters['path'] ?? '';
+          final fullUrl = Uri.base.toString();
+          final fragment = Uri.base.fragment;
 
-          // Check if this looks like an auth callback
-          if (_isAuthTokenLocation(path) ||
-              _isAuthTokenLocation(Uri.base.fragment)) {
-            return LoginPage();
+          // Check if this looks like an auth callback with tokens
+          final hasAuthTokens = _isAuthTokenLocation(path) ||
+              _isAuthTokenLocation(fragment) ||
+              fullUrl.contains('access_token');
+
+          if (hasAuthTokens) {
+            // If user is authenticated, redirect to their home
+            if (AuthService.isAuthenticated()) {
+              final role = AuthService.getCurrentUserRole();
+              if (role == UserRole.family) {
+                // Use a post-frame callback to navigate
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  context.go(AppRoutes.familyCapsule);
+                });
+              } else if (role == UserRole.admin) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  context.go(AppRoutes.adminDashboard);
+                });
+              }
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            // Not authenticated - show link expired page
+            return const LinkExpiredPage();
           }
 
           return Scaffold(
@@ -275,7 +322,9 @@ bool _isAuthTokenLocation(String location) {
 bool _isPublicRoute(String path) {
   return path == '/login' ||
       path == '/' ||
+      path == AppRoutes.familyLogin ||
       path == AppRoutes.resetPassword ||
+      path == AppRoutes.linkExpired ||
       path == AppRoutes.register ||
       path.startsWith('/capsule/');
 }

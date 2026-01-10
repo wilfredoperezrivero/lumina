@@ -116,10 +116,20 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
         title: Text('My Capsules'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => context.go('/admin/dashboard'),
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.refresh),
             onPressed: _refreshCapsules,
+            tooltip: 'Refresh',
+          ),
+          IconButton(
+            icon: Icon(Icons.home),
+            onPressed: () => context.go('/admin/dashboard'),
+            tooltip: 'Go to Dashboard',
           ),
         ],
       ),

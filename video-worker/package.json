@@ -1,0 +1,14 @@
+{
+  "name": "lumina-video-pgmq-worker",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.7",
+    "axios": "^1.6.7",
+    "dotenv": "^17.2.0",
+    "ffmpeg-static": "^4.4.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "tmp": "^0.2.1",
+    "uuid": "^9.0.1"
+  }
+}

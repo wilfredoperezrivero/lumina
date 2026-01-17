@@ -9,6 +9,13 @@
             "request": "launch",
             "type": "dart",
             "deviceId": "chrome"
+        },
+        {
+            "name": "Debug Video Worker",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/video-worker/index.js",
+            "cwd": "${workspaceFolder}/video-worker"
         }
     ]
 }

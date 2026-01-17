@@ -388,11 +388,11 @@ async function prepareMediaParts(messages, capsuleInfo) {
       const slideText = msg.content_text || "Audio Tribute";
       // Always use horizontal layout
       const slideImage = await createTextSlide(slideText, msg.contributor_name, capsuleInfo, 'audio', false);
-      parts.push({ type: "audio", image: slideImage, audio: audioFile, isVertical: false, contentType: 'audio' });
+      parts.push({ type: "audio", image: slideImage, audio: audioFile, isVertical: false, contentType: 'audio', capsuleInfo: capsuleInfo });
     } else if (msg.content_text) {
       // Always use horizontal layout
       const slideImage = await createTextSlide(msg.content_text, msg.contributor_name, capsuleInfo, 'text', false);
-      parts.push({ type: "text", image: slideImage, isVertical: false, contentType: 'text' });
+      parts.push({ type: "text", image: slideImage, isVertical: false, contentType: 'text', capsuleInfo: capsuleInfo });
     }
   }
   return parts;
@@ -501,13 +501,13 @@ async function createTextSegment(part, tempDir, idx) {
   return outPath;
 }
 
-async function createVideoSegments(parts, tempDir) {
+async function createVideoSegments(parts, tempDir, capsuleInfo) {
   const videoSegments = [];
   let idx = 0;
-  
+
   // Create initial slide with capsule title and admin info
-  if (parts.length > 0 && parts[0].capsuleInfo) {
-    const initialSlide = await createInitialSlide(parts[0].capsuleInfo);
+  if (capsuleInfo) {
+    const initialSlide = await createInitialSlide(capsuleInfo);
     const initialSegment = await createTextSegment({ type: "text", image: initialSlide }, tempDir, idx++);
     videoSegments.push(initialSegment);
   }
@@ -579,7 +579,7 @@ async function saveLocalVideo(finalVideo, capsule_id) {
 
 // --- Main Worker Logic ---
 async function processPgmqQueue() {
-  try {
+  //try {
     /*
     const job = await fetchNextJob();
     if (!job) {
@@ -591,34 +591,34 @@ async function processPgmqQueue() {
     const capsule_id = payload.capsule_id;
     */
 
-    const capsule_id = "fc82a55e-30de-4458-8bcd-c6f5c44c2a61"
+    const capsule_id = "aff1aa55-a9a4-4519-907b-ef4d71a8533d"
 
 
     console.log("Processing job for capsule:", capsule_id);
-    try {
+
       const messages = await fetchCapsuleMessages(capsule_id);
       const capsuleInfo = await fetchCapsuleInfo(capsule_id);
       const parts = await prepareMediaParts(messages, capsuleInfo);
       const tempDir = tmp.dirSync().name;
-      const videoSegments = await createVideoSegments(parts, tempDir);
+      const videoSegments = await createVideoSegments(parts, tempDir, capsuleInfo);
       const finalVideo = await concatenateSegments(videoSegments, tempDir, capsule_id);
       
       // Save local copy for debugging
       await saveLocalVideo(finalVideo, capsule_id);
- /*     
+     
       const key = `capsules/${capsule_id}/final_video.mp4`;
       const videoUrl = await uploadToSupabaseStorage(finalVideo, key);
       await updateCapsuleWithVideo(capsule_id, videoUrl);
-      await acknowledgeJob(message_id);
+      console.log("Video uploaded: ", videoUrl);
+      //await acknowledgeJob(message_id);
       console.log("Job completed and removed from queue.");
-*/
-    } catch (err) {
-      console.error("Job failed:", err);
-      // (Don't ACK - will retry after VT)
-    }
+
+/*
   } catch (e) {
     console.error("Worker error:", e);
   }
+    */
+
 }
 
 async function startWorker() {

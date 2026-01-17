@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/auth_service.dart';
 import '../../router.dart';
+import '../../theme/app_theme.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -33,14 +34,12 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  /// Check if user is already authenticated and redirect to appropriate dashboard
   void _checkAuthAndRedirect() {
     if (!AuthService.isAuthenticated()) return;
 
     final role = AuthService.getCurrentUserRole();
     if (role == null) return;
 
-    // Use microtask to avoid navigating during build
     Future.microtask(() {
       if (!mounted) return;
       switch (role) {
@@ -54,9 +53,7 @@ class _LoginPageState extends State<LoginPage> {
     });
   }
 
-  /// Handle login form submission
   Future<void> _handleLogin() async {
-    // Validate form
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -77,7 +74,6 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isLoading = false);
 
       if (role == null) {
-        // User has no role assigned
         setState(() {
           _errorMessage = 'Your account has no role assigned. Please contact support.';
         });
@@ -85,7 +81,6 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // Navigate based on role
       switch (role) {
         case UserRole.admin:
           context.go(AppRoutes.adminDashboard);
@@ -104,7 +99,6 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// Parse error messages into user-friendly text
   String _parseLoginError(String error) {
     if (error.contains('Invalid login credentials')) {
       return 'Invalid email or password. Please check your credentials.';
@@ -121,7 +115,6 @@ class _LoginPageState extends State<LoginPage> {
     return 'Login failed. Please try again.';
   }
 
-  /// Show password reset dialog
   Future<void> _showPasswordResetDialog() async {
     final resetEmailController = TextEditingController(text: _emailController.text);
     bool isSending = false;
@@ -131,19 +124,24 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Reset Password'),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          title: Text('Reset Password', style: AppTextStyles.h3),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Enter your email to receive a password reset link.'),
+              Text(
+                'Enter your email to receive a password reset link.',
+                style: AppTextStyles.bodySecondary,
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: resetEmailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
+                decoration: AppDecorations.inputDecoration(
+                  label: 'Email',
+                  prefixIcon: Icons.email_outlined,
                 ),
                 keyboardType: TextInputType.emailAddress,
                 enabled: !isSending,
@@ -152,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 12),
                 Text(
                   dialogError!,
-                  style: TextStyle(color: Colors.red.shade700, fontSize: 13),
+                  style: TextStyle(color: AppColors.error, fontSize: 13),
                 ),
               ],
             ],
@@ -160,9 +158,10 @@ class _LoginPageState extends State<LoginPage> {
           actions: [
             TextButton(
               onPressed: isSending ? null : () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
             ),
             ElevatedButton(
+              style: primaryButtonStyle,
               onPressed: isSending
                   ? null
                   : () async {
@@ -182,9 +181,9 @@ class _LoginPageState extends State<LoginPage> {
                         if (dialogContext.mounted) {
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Password reset email sent! Check your inbox.'),
-                              backgroundColor: Colors.green,
+                            SnackBar(
+                              content: const Text('Password reset email sent! Check your inbox.'),
+                              backgroundColor: AppColors.success,
                             ),
                           );
                         }
@@ -199,7 +198,7 @@ class _LoginPageState extends State<LoginPage> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Text('Send'),
             ),
@@ -211,7 +210,6 @@ class _LoginPageState extends State<LoginPage> {
     resetEmailController.dispose();
   }
 
-  /// Open privacy policy URL
   Future<void> _openPrivacyPolicy() async {
     final url = Uri.parse('https://luminamemorials.com/en/privacy-policy');
     if (await canLaunchUrl(url)) {
@@ -222,11 +220,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -240,28 +234,42 @@ class _LoginPageState extends State<LoginPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Logo
-                    Image.asset(
-                      'assets/logo.png',
-                      height: 100,
-                      fit: BoxFit.contain,
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryDark,
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                        ),
+                        child: const Icon(
+                          Icons.diamond_outlined,
+                          color: Colors.white,
+                          size: 40,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 24),
 
                     // Title
                     Text(
-                      'Welcome to Lumina Memorials',
-                      style: Theme.of(context).textTheme.headlineMedium,
+                      'Welcome to Lumina',
+                      style: AppTextStyles.h1,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sign in to continue',
+                      style: AppTextStyles.bodySecondary,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 40),
 
                     // Email field
                     TextFormField(
                       controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.email),
+                      decoration: AppDecorations.inputDecoration(
+                        label: 'Email',
+                        prefixIcon: Icons.email_outlined,
                       ),
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
@@ -281,13 +289,14 @@ class _LoginPageState extends State<LoginPage> {
                     // Password field
                     TextFormField(
                       controller: _passwordController,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.lock),
+                      decoration: AppDecorations.inputDecoration(
+                        label: 'Password',
+                        prefixIcon: Icons.lock_outline_rounded,
+                      ).copyWith(
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: AppColors.accent,
                           ),
                           onPressed: () {
                             setState(() => _obscurePassword = !_obscurePassword);
@@ -315,74 +324,77 @@ class _LoginPageState extends State<LoginPage> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: _showPasswordResetDialog,
-                        child: const Text('Forgot Password?'),
+                        child: Text(
+                          'Forgot Password?',
+                          style: TextStyle(color: AppColors.accent, fontSize: 14),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
 
                     // GDPR checkbox
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Checkbox(
-                          value: _gdprAccepted,
-                          onChanged: (value) {
-                            setState(() => _gdprAccepted = value ?? false);
-                          },
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: _openPrivacyPolicy,
-                            child: RichText(
-                              text: TextSpan(
-                                style: Theme.of(context).textTheme.bodyMedium,
-                                children: [
-                                  const TextSpan(text: 'I accept the '),
-                                  TextSpan(
-                                    text: 'Privacy Policy',
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.primary,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                  const TextSpan(text: ' and consent to data processing (GDPR)'),
-                                ],
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: _gdprAccepted,
+                              onChanged: (value) {
+                                setState(() => _gdprAccepted = value ?? false);
+                              },
+                              activeColor: AppColors.primaryDark,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Error message
-                    if (_errorMessage != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.red.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline, color: Colors.red.shade700),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: TextStyle(color: Colors.red.shade700),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _openPrivacyPolicy,
+                              child: RichText(
+                                text: TextSpan(
+                                  style: AppTextStyles.caption,
+                                  children: [
+                                    const TextSpan(text: 'I accept the '),
+                                    TextSpan(
+                                      text: 'Privacy Policy',
+                                      style: TextStyle(
+                                        color: AppColors.primaryDark,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                    const TextSpan(text: ' and consent to data processing (GDPR)'),
+                                  ],
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    if (_errorMessage != null) const SizedBox(height: 16),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Error message
+                    if (_errorMessage != null) ...[
+                      buildAlertContainer(message: _errorMessage!, isError: true),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Login button
                     SizedBox(
-                      height: 48,
+                      height: 52,
                       child: ElevatedButton(
+                        style: primaryButtonStyle,
                         onPressed: (_isLoading || !_gdprAccepted) ? null : _handleLogin,
                         child: _isLoading
                             ? const SizedBox(
@@ -393,7 +405,7 @@ class _LoginPageState extends State<LoginPage> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text('Login'),
+                            : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -402,13 +414,13 @@ class _LoginPageState extends State<LoginPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('New user?'),
+                        Text('New user?', style: AppTextStyles.caption),
                         TextButton(
                           onPressed: () => context.go(AppRoutes.register),
                           child: Text(
                             'Create Account',
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
+                              color: AppColors.primaryDark,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -418,14 +430,14 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 16),
 
                     // Divider
-                    const Row(
+                    Row(
                       children: [
-                        Expanded(child: Divider()),
+                        Expanded(child: Divider(color: AppColors.border)),
                         Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('OR', style: TextStyle(color: Colors.grey)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('OR', style: AppTextStyles.caption),
                         ),
-                        Expanded(child: Divider()),
+                        Expanded(child: Divider(color: AppColors.border)),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -433,11 +445,12 @@ class _LoginPageState extends State<LoginPage> {
                     // Family login link
                     OutlinedButton.icon(
                       onPressed: () => context.go(AppRoutes.familyLogin),
-                      icon: const Icon(Icons.family_restroom),
-                      label: const Text('Family Login (Magic Link)'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      icon: Icon(Icons.family_restroom, color: AppColors.primaryDark),
+                      label: Text(
+                        'Family Login (Magic Link)',
+                        style: TextStyle(color: AppColors.primaryDark),
                       ),
+                      style: secondaryButtonStyle,
                     ),
                   ],
                 ),

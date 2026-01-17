@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../services/pdf_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 
 class CapsuleDetailsPage extends StatefulWidget {
   final Capsule capsule;
@@ -28,232 +29,257 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text('Capsule Details'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.accent),
           onPressed: () => context.go('/admin/list_capsules'),
         ),
+        title: Text('Capsule Details', style: AppTextStyles.h3.copyWith(fontSize: 18)),
         actions: [
-          IconButton(
-            icon: Icon(Icons.edit),
-            onPressed: () => _editCapsule(),
-            tooltip: 'Edit Capsule',
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.edit_rounded, color: AppColors.accent),
+              onPressed: _editCapsule,
+              tooltip: 'Edit',
+            ),
           ),
-          IconButton(
-            icon: Icon(Icons.home),
-            onPressed: () => context.go('/admin/dashboard'),
-            tooltip: 'Go to Dashboard',
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.home_rounded, color: AppColors.accent),
+              onPressed: () => context.go('/admin/dashboard'),
+              tooltip: 'Dashboard',
+            ),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: AppColors.border, height: 1),
+        ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDark))
           : _capsule == null
-              ? Center(child: Text('Capsule not found'))
+              ? _buildEmptyState()
               : SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header with name and status
-                      Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _capsule!.name ?? '(No Name)',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .headlineSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _getStatusColor(
-                                            _capsule!.status ?? ''),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Text(
-                                        _capsule!.status ?? 'Unknown',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16),
-
-                      // --- Combined Info Section ---
+                      _buildHeaderCard(),
+                      const SizedBox(height: 20),
                       _buildInfoSection(),
-
-                      SizedBox(height: 24),
-
-                      // Resend Magic Link Button (only if family email exists)
-                      if (_capsule!.familyEmail?.isNotEmpty == true)
-                        Center(
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isSendingMagicLink ? null : _resendMagicLink,
-                              icon: _isSendingMagicLink
-                                  ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                  : Icon(Icons.email),
-                              label: Text(_isSendingMagicLink
-                                  ? 'Sending...'
-                                  : 'Resend Login Link to Family'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange.shade600,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 14),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                      if (_capsule!.familyEmail?.isNotEmpty == true)
-                        SizedBox(height: 12),
-
-                      // Generate PDF Button at bottom
-                      Center(
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _generateMemorialPdf,
-                            icon: Icon(Icons.picture_as_pdf),
-                            label: Text('Generate Memorial PDF'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green.shade600,
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                            ),
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 20),
+                      _buildActionsSection(),
                     ],
                   ),
                 ),
     );
   }
 
-  // New unified info section card
-  Widget _buildInfoSection() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Capsule Information',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(color: AppColors.border),
             ),
-            SizedBox(height: 12),
-            if (_capsule!.dateOfBirth?.isNotEmpty == true)
-              _buildInfoRow(
-                  'Date of Birth', _capsule!.dateOfBirth!, Icons.cake),
-            if (_capsule!.dateOfDeath?.isNotEmpty == true)
-              _buildInfoRow(
-                  'Date of Death', _capsule!.dateOfDeath!, Icons.event),
-            if (_capsule!.language?.isNotEmpty == true)
-              _buildInfoRow('Language', _capsule!.language!, Icons.language),
-            if (_capsule!.familyEmail?.isNotEmpty == true)
-              _buildInfoRow(
-                  'Family Email', _capsule!.familyEmail!, Icons.email),
-            if (_capsule!.scheduledDate != null)
-              _buildInfoRow(
-                'Scheduled Date',
-                '${_capsule!.scheduledDate!.day}/${_capsule!.scheduledDate!.month}/${_capsule!.scheduledDate!.year}',
-                Icons.schedule,
-              ),
-            if (_capsule!.createdAt != null)
-              _buildInfoRow(
-                'Created',
-                '${_capsule!.createdAt!.day}/${_capsule!.createdAt!.month}/${_capsule!.createdAt!.year}',
-                Icons.calendar_today,
-              ),
-            if (_capsule!.expiresAt != null)
-              _buildInfoRow(
-                'Expires',
-                '${_capsule!.expiresAt!.day}/${_capsule!.expiresAt!.month}/${_capsule!.expiresAt!.year}',
-                Icons.access_time,
-              ),
-            if (_capsule!.finalVideoUrl?.isNotEmpty == true)
-              _buildInfoRow(
-                  'Final Video', _capsule!.finalVideoUrl!, Icons.video_library),
-          ],
-        ),
+            child: const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.accent),
+          ),
+          const SizedBox(height: 24),
+          Text('Capsule not found', style: AppTextStyles.h3),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, IconData icon) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6),
+  Widget _buildHeaderCard() {
+    return Container(
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.blue.shade600),
-          SizedBox(width: 8),
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-              ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
+            child: const Icon(Icons.inventory_2_outlined, color: AppColors.primaryDark, size: 32),
           ),
+          const SizedBox(width: 20),
           Expanded(
-            child: Text(value),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _capsule!.name ?? '(No Name)',
+                  style: AppTextStyles.h2,
+                ),
+                const SizedBox(height: 8),
+                buildStatusBadge(_capsule!.status ?? 'Unknown'),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'draft':
-        return Colors.grey;
-      case 'active':
-        return Colors.green;
-      case 'completed':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
+  Widget _buildInfoSection() {
+    return Container(
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(Icons.info_outline_rounded, color: AppColors.primaryDark, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('Information', style: AppTextStyles.h3),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_capsule!.dateOfBirth?.isNotEmpty == true)
+            _buildInfoRow('Date of Birth', _capsule!.dateOfBirth!, Icons.cake_outlined),
+          if (_capsule!.dateOfDeath?.isNotEmpty == true)
+            _buildInfoRow('Date of Death', _capsule!.dateOfDeath!, Icons.event_outlined),
+          if (_capsule!.language?.isNotEmpty == true)
+            _buildInfoRow('Language', _capsule!.language!, Icons.language_rounded),
+          if (_capsule!.familyEmail?.isNotEmpty == true)
+            _buildInfoRow('Family Email', _capsule!.familyEmail!, Icons.email_outlined),
+          if (_capsule!.scheduledDate != null)
+            _buildInfoRow(
+              'Scheduled Date',
+              '${_capsule!.scheduledDate!.day}/${_capsule!.scheduledDate!.month}/${_capsule!.scheduledDate!.year}',
+              Icons.schedule_rounded,
+            ),
+          if (_capsule!.createdAt != null)
+            _buildInfoRow(
+              'Created',
+              '${_capsule!.createdAt!.day}/${_capsule!.createdAt!.month}/${_capsule!.createdAt!.year}',
+              Icons.calendar_today_rounded,
+            ),
+          if (_capsule!.expiresAt != null)
+            _buildInfoRow(
+              'Expires',
+              '${_capsule!.expiresAt!.day}/${_capsule!.expiresAt!.month}/${_capsule!.expiresAt!.year}',
+              Icons.access_time_rounded,
+            ),
+          if (_capsule!.finalVideoUrl?.isNotEmpty == true)
+            _buildInfoRow('Final Video', 'Available', Icons.video_library_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.accent),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 120,
+            child: Text(label, style: AppTextStyles.label),
+          ),
+          Expanded(
+            child: Text(value, style: AppTextStyles.body),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionsSection() {
+    return Container(
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(Icons.touch_app_rounded, color: AppColors.primaryDark, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('Actions', style: AppTextStyles.h3),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (_capsule!.familyEmail?.isNotEmpty == true) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isSendingMagicLink ? null : _resendMagicLink,
+                icon: _isSendingMagicLink
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.email_rounded),
+                label: Text(_isSendingMagicLink ? 'Sending...' : 'Resend Login Link to Family'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.warning,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _generateMemorialPdf,
+              icon: const Icon(Icons.picture_as_pdf_rounded),
+              label: const Text('Generate Memorial PDF'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _editCapsule() {
@@ -275,7 +301,7 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Login link sent to ${_capsule!.familyEmail}'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -284,7 +310,7 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to send login link: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -298,9 +324,7 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
   Future<void> _generateMemorialPdf() async {
     if (_capsule == null) return;
 
-    // Build public URL using production domain
-    final publicUrl =
-        'https://app.luminamemorials.com/#/capsule/${_capsule!.id}';
+    final publicUrl = 'https://app.luminamemorials.com/#/capsule/${_capsule!.id}';
 
     try {
       String? logoUrl;
@@ -318,8 +342,8 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Memorial PDF generated successfully!'),
-            backgroundColor: Colors.green,
+            content: const Text('Memorial PDF generated successfully!'),
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -328,7 +352,7 @@ class _CapsuleDetailsPageState extends State<CapsuleDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to generate PDF: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }

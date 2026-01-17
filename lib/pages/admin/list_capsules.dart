@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/capsule_service.dart';
 import '../../models/capsule.dart';
+import '../../theme/app_theme.dart';
 
 class ListCapsulesPage extends StatefulWidget {
   @override
@@ -112,284 +113,303 @@ class _ListCapsulesPageState extends State<ListCapsulesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text('My Capsules'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.accent),
           onPressed: () => context.go('/admin/dashboard'),
         ),
+        title: Text('Capsules', style: AppTextStyles.h3.copyWith(fontSize: 18)),
         actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _refreshCapsules,
-            tooltip: 'Refresh',
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.refresh_rounded, color: AppColors.accent),
+              onPressed: _refreshCapsules,
+              tooltip: 'Refresh',
+            ),
           ),
-          IconButton(
-            icon: Icon(Icons.home),
-            onPressed: () => context.go('/admin/dashboard'),
-            tooltip: 'Go to Dashboard',
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.home_rounded, color: AppColors.accent),
+              onPressed: () => context.go('/admin/dashboard'),
+              tooltip: 'Dashboard',
+            ),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: AppColors.border, height: 1),
+        ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDark))
           : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      SizedBox(height: 16),
-                      Text(
-                        'Error',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        _errorMessage!,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _refreshCapsules,
-                        child: Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildErrorState()
               : _capsules.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.inbox_outlined,
-                              size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
-                            'No Capsules Yet',
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Create your first capsule to get started',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () =>
-                                context.go('/admin/create_capsule'),
-                            child: Text('Create Capsule'),
-                          ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _refreshCapsules,
-                      child: Column(
-                        children: [
-                          // Total count display
-                          Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            color: Colors.blue.shade50,
-                            child: Text(
-                              'Total: $_totalCapsules capsule(s)',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue.shade800,
-                              ),
-                            ),
-                          ),
-                          // Create new capsule button
-                          Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            child: ElevatedButton.icon(
-                              onPressed: () =>
-                                  context.go('/admin/create_capsule'),
-                              icon: Icon(Icons.add, color: Colors.white),
-                              label: Text(
-                                'Create New Capsule',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green.shade600,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            child: Row(
-                              children: [
-                                Text('Filter by status: '),
-                                SizedBox(width: 8),
-                                DropdownButton<String>(
-                                  value: _statusFilter,
-                                  items: [
-                                    'All',
-                                    'Active',
-                                    'Draft',
-                                    'Completed',
-                                  ]
-                                      .map((status) => DropdownMenuItem(
-                                            value: status,
-                                            child: Text(status),
-                                          ))
-                                      .toList(),
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      setState(() {
-                                        _statusFilter = value;
-                                      });
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: ListView.builder(
-                              controller: _scrollController,
-                              padding: EdgeInsets.all(16),
-                              itemCount: _filteredCapsules.length +
-                                  (_hasMoreCapsules ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index == _filteredCapsules.length) {
-                                  // Loading indicator at the bottom
-                                  return _isLoadingMore
-                                      ? Padding(
-                                          padding: EdgeInsets.all(16),
-                                          child: Center(
-                                            child: CircularProgressIndicator(),
-                                          ),
-                                        )
-                                      : SizedBox.shrink();
-                                }
-                                final capsule = _filteredCapsules[index];
-                                final String familyEmail =
-                                    capsule.familyEmail ?? '';
-                                return Card(
-                                  margin: EdgeInsets.only(bottom: 8),
-                                  child: Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // First line: Name and Status
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                capsule.name ?? '(No Name)',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .titleMedium
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                              ),
-                                            ),
-                                            Container(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: _getStatusColor(
-                                                    capsule.status ?? ''),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                capsule.status ?? 'Unknown',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 4),
-                                        // Second line: Family Email and Edit Button
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                'Family: ${familyEmail.isNotEmpty ? familyEmail : 'Not assigned'}',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.copyWith(
-                                                      color: Colors.grey[600],
-                                                      fontSize: 11,
-                                                    ),
-                                              ),
-                                            ),
-                                            ElevatedButton.icon(
-                                              onPressed: () =>
-                                                  _openCapsule(capsule),
-                                              icon: Icon(Icons.open_in_new,
-                                                  size: 14),
-                                              label: Text('Open',
-                                                  style:
-                                                      TextStyle(fontSize: 12)),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    Colors.blue.shade600,
-                                                foregroundColor: Colors.white,
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 4,
-                                                ),
-                                                minimumSize: Size(0, 28),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  ? _buildEmptyState()
+                  : _buildCapsulesList(),
     );
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'draft':
-        return Colors.grey;
-      case 'active':
-        return Colors.green;
-      case 'completed':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.errorLight,
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+              ),
+              child: Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            ),
+            const SizedBox(height: 24),
+            Text('Something went wrong', style: AppTextStyles.h3),
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!,
+              style: AppTextStyles.bodySecondary,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _refreshCapsules,
+              style: primaryButtonStyle,
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.accent),
+            ),
+            const SizedBox(height: 24),
+            Text('No Capsules Yet', style: AppTextStyles.h3),
+            const SizedBox(height: 8),
+            Text(
+              'Create your first capsule to get started',
+              style: AppTextStyles.bodySecondary,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => context.go('/admin/create_capsule'),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Create Capsule'),
+              style: primaryButtonStyle,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCapsulesList() {
+    return RefreshIndicator(
+      onRefresh: _refreshCapsules,
+      color: AppColors.primaryDark,
+      child: Column(
+        children: [
+          // Header section
+          Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Stats row
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: AppDecorations.card,
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                              ),
+                              child: const Icon(Icons.inventory_2_outlined, color: AppColors.primaryDark, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('$_totalCapsules', style: AppTextStyles.h3),
+                                Text('Total Capsules', style: AppTextStyles.caption),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Create button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => context.go('/admin/create_capsule'),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Create New Capsule', style: TextStyle(fontWeight: FontWeight.w600)),
+                    style: primaryButtonStyle,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Filter row
+                Row(
+                  children: [
+                    Text('Filter:', style: AppTextStyles.label),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _statusFilter,
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.accent),
+                          items: ['All', 'Active', 'Draft', 'Completed']
+                              .map((status) => DropdownMenuItem(
+                                    value: status,
+                                    child: Text(status, style: AppTextStyles.body),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _statusFilter = value);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Capsules list
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: _filteredCapsules.length + (_hasMoreCapsules ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _filteredCapsules.length) {
+                  return _isLoadingMore
+                      ? const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator(color: AppColors.primaryDark)),
+                        )
+                      : const SizedBox.shrink();
+                }
+                return _buildCapsuleCard(_filteredCapsules[index]);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCapsuleCard(Capsule capsule) {
+    final familyEmail = capsule.familyEmail ?? '';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: AppDecorations.card,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openCapsule(capsule),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icon container
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: const Icon(Icons.inventory_2_outlined, color: AppColors.primaryDark, size: 24),
+                ),
+                const SizedBox(width: 16),
+
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        capsule.name ?? '(No Name)',
+                        style: AppTextStyles.subtitle,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        familyEmail.isNotEmpty ? familyEmail : 'No family assigned',
+                        style: AppTextStyles.caption,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Status badge
+                buildStatusBadge(capsule.status ?? 'Unknown'),
+
+                const SizedBox(width: 8),
+
+                // Arrow icon
+                const Icon(Icons.chevron_right_rounded, color: AppColors.accent),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _openCapsule(Capsule capsule) {

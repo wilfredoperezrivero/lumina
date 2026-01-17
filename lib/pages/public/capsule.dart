@@ -6,6 +6,7 @@ import '../../models/capsule.dart';
 import '../../services/capsule_service.dart';
 import '../../services/media_upload_service.dart';
 import '../../services/message_service.dart';
+import '../../theme/app_theme.dart';
 
 class CapsulePage extends StatefulWidget {
   final String capsuleId;
@@ -57,7 +58,6 @@ class _CapsulePageState extends State<CapsulePage> {
         _errorMessage = null;
       });
 
-      // Load capsule details
       final capsule = await CapsuleService.getCapsuleById(widget.capsuleId);
 
       setState(() {
@@ -73,9 +73,7 @@ class _CapsulePageState extends State<CapsulePage> {
   }
 
   Future<void> _uploadVideo() async {
-    setState(() {
-      _isUploadingVideo = true;
-    });
+    setState(() => _isUploadingVideo = true);
 
     try {
       final videoUrl = await MediaUploadService.pickAndUploadFile(
@@ -84,42 +82,20 @@ class _CapsulePageState extends State<CapsulePage> {
       );
 
       if (videoUrl != null) {
-        setState(() {
-          _uploadedVideoUrl = videoUrl;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Video uploaded successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        setState(() => _uploadedVideoUrl = videoUrl);
+        _showSuccessSnackBar('Video uploaded successfully!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to upload video'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showErrorSnackBar('Failed to upload video');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error uploading video: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showErrorSnackBar('Error uploading video: ${e.toString()}');
     } finally {
-      setState(() {
-        _isUploadingVideo = false;
-      });
+      setState(() => _isUploadingVideo = false);
     }
   }
 
   Future<void> _uploadImage() async {
-    setState(() {
-      _isUploadingImage = true;
-    });
+    setState(() => _isUploadingImage = true);
 
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -132,14 +108,9 @@ class _CapsulePageState extends State<CapsulePage> {
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final fileName = '${timestamp}_${pickedFile.name}';
 
-        print('Selected file: ${pickedFile.name}');
-        print('File bytes available: ${pickedFile.bytes != null}');
-
         String imageUrl;
 
-        // Always try to use bytes first (works on all platforms)
         if (pickedFile.bytes != null) {
-          print('Using bytes upload method');
           final webImageUrl = await MediaUploadService.uploadImageBytes(
               pickedFile.bytes!, fileName, widget.capsuleId);
           if (webImageUrl != null) {
@@ -148,16 +119,12 @@ class _CapsulePageState extends State<CapsulePage> {
             throw Exception('Failed to upload image. Please try again.');
           }
         } else {
-          // Fallback for platforms where bytes might not be available
           if (kIsWeb) {
-            throw Exception(
-                'Could not read file data on web. Please try again.');
+            throw Exception('Could not read file data on web. Please try again.');
           }
 
-          // Only try path on non-web platforms
           try {
             if (pickedFile.path != null) {
-              print('Using file path upload method');
               final file = File(pickedFile.path!);
               imageUrl = await MediaUploadService.uploadImage(
                   file, fileName, widget.capsuleId);
@@ -169,57 +136,32 @@ class _CapsulePageState extends State<CapsulePage> {
           }
         }
 
-        setState(() {
-          _uploadedImageUrl = imageUrl;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Image uploaded successfully!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      } else {
-        // User cancelled file picker
-        print('File picker cancelled or no file selected');
+        setState(() => _uploadedImageUrl = imageUrl);
+        _showSuccessSnackBar('Image uploaded successfully!');
       }
     } catch (e) {
-      print('Image upload error in UI: $e');
       String errorMessage = 'Error uploading image';
 
       if (e.toString().contains('File too large')) {
-        errorMessage =
-            'Image file is too large. Please select a smaller image (max 10MB).';
+        errorMessage = 'Image file is too large. Please select a smaller image (max 10MB).';
       } else if (e.toString().contains('File does not exist')) {
         errorMessage = 'Could not access the selected file. Please try again.';
       } else if (e.toString().contains('permission')) {
         errorMessage = 'Permission denied. Please allow access to your photos.';
       } else if (e.toString().contains('path is unavailable')) {
-        errorMessage =
-            'File access error. Please try selecting the image again.';
+        errorMessage = 'File access error. Please try selecting the image again.';
       } else {
         errorMessage = 'Error uploading image: ${e.toString()}';
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 5),
-        ),
-      );
+      _showErrorSnackBar(errorMessage);
     } finally {
-      setState(() {
-        _isUploadingImage = false;
-      });
+      setState(() => _isUploadingImage = false);
     }
   }
 
   Future<void> _uploadAudio() async {
-    setState(() {
-      _isUploadingAudio = true;
-    });
+    setState(() => _isUploadingAudio = true);
 
     try {
       final audioUrl = await MediaUploadService.pickAndUploadFile(
@@ -228,86 +170,53 @@ class _CapsulePageState extends State<CapsulePage> {
       );
 
       if (audioUrl != null) {
-        setState(() {
-          _uploadedAudioUrl = audioUrl;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Audio uploaded successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        setState(() => _uploadedAudioUrl = audioUrl);
+        _showSuccessSnackBar('Audio uploaded successfully!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to upload audio'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showErrorSnackBar('Failed to upload audio');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error uploading audio: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showErrorSnackBar('Error uploading audio: ${e.toString()}');
     } finally {
-      setState(() {
-        _isUploadingAudio = false;
-      });
+      setState(() => _isUploadingAudio = false);
     }
   }
 
   Future<void> _recordAudio() async {
-    setState(() {
-      _isRecordingAudio = true;
-    });
+    setState(() => _isRecordingAudio = true);
 
     try {
-      // For now, we'll use the file picker for audio recording
-      // In a real implementation, you'd use a recording package
       final audioUrl = await MediaUploadService.pickAndUploadFile(
         widget.capsuleId,
         'audio',
       );
 
       if (audioUrl != null) {
-        setState(() {
-          _uploadedAudioUrl = audioUrl;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Audio recorded and uploaded successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        setState(() => _uploadedAudioUrl = audioUrl);
+        _showSuccessSnackBar('Audio recorded and uploaded successfully!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to record audio'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showErrorSnackBar('Failed to record audio');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error recording audio: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showErrorSnackBar('Error recording audio: ${e.toString()}');
     } finally {
-      setState(() {
-        _isRecordingAudio = false;
-      });
+      setState(() => _isRecordingAudio = false);
     }
   }
 
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.success),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
+    );
+  }
+
   Future<void> _submitMessage() async {
-    // Check if at least one content type is provided
     final hasText = _messageController.text.trim().isNotEmpty;
     final hasVideo = _uploadedVideoUrl != null;
     final hasAudio = _uploadedAudioUrl != null;
@@ -316,8 +225,8 @@ class _CapsulePageState extends State<CapsulePage> {
     if (!hasText && !hasVideo && !hasAudio && !hasImage) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please provide a message, video, audio, or image'),
-          backgroundColor: Colors.orange,
+          content: const Text('Please provide a message, video, audio, or image'),
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -325,22 +234,19 @@ class _CapsulePageState extends State<CapsulePage> {
 
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isSubmitting = true;
-    });
+    setState(() => _isSubmitting = true);
 
     try {
       await MessageService.createMessage(
         capsuleId: widget.capsuleId,
         contentText: hasText ? _messageController.text.trim() : null,
         contributorName: _nameController.text.trim(),
-        contributorEmail: null, // No email field
+        contributorEmail: null,
         contentAudioUrl: hasAudio ? _uploadedAudioUrl : null,
         contentVideoUrl: hasVideo ? _uploadedVideoUrl : null,
         contentImageUrl: hasImage ? _uploadedImageUrl : null,
       );
 
-      // Clear form and uploaded media
       _nameController.clear();
       _messageController.clear();
       setState(() {
@@ -350,111 +256,131 @@ class _CapsulePageState extends State<CapsulePage> {
         _messageSubmitted = true;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Message submitted successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      _showSuccessSnackBar('Message submitted successfully!');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to submit message: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showErrorSnackBar('Failed to submit message: ${e.toString()}');
     } finally {
-      setState(() {
-        _isSubmitting = false;
-      });
+      setState(() => _isSubmitting = false);
     }
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      appBar: AppBar(
+        backgroundColor: AppColors.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text('In Memory', style: AppTextStyles.h3.copyWith(fontSize: 18)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: AppColors.border, height: 1),
+        ),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDark))
+          : _errorMessage != null
+              ? _buildErrorState()
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildCapsuleInfo(),
+                      const SizedBox(height: 20),
+                      _messageSubmitted ? _buildThankYouMessage() : _buildMessageForm(),
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.errorLight,
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+              ),
+              child: Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            ),
+            const SizedBox(height: 24),
+            Text('Error', style: AppTextStyles.h3),
+            const SizedBox(height: 8),
+            Text(_errorMessage!, style: AppTextStyles.bodySecondary, textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loadCapsule,
+              style: primaryButtonStyle,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCapsuleInfo() {
-    if (_capsule == null) return Container();
+    if (_capsule == null) return const SizedBox.shrink();
 
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.grey[50]!, Colors.white],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.error.withValues(alpha: 0.1),
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
             ),
-            child: Icon(
-              Icons.favorite,
-              size: 32,
-              color: Colors.red[400],
-            ),
+            child: Icon(Icons.favorite_rounded, size: 32, color: AppColors.error),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Text(
             'In Loving Memory of',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
+            style: AppTextStyles.label,
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             _capsule!.name ?? 'Unknown',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-              letterSpacing: 0.5,
-            ),
+            style: AppTextStyles.h2,
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: 24),
-          Container(
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[200]!),
+          if (_capsule!.dateOfBirth?.isNotEmpty == true ||
+              _capsule!.dateOfDeath?.isNotEmpty == true ||
+              _capsule!.language?.isNotEmpty == true ||
+              _capsule!.scheduledDate != null) ...[
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  if (_capsule!.dateOfBirth?.isNotEmpty == true)
+                    _buildInfoRow('Date of Birth', _capsule!.dateOfBirth!),
+                  if (_capsule!.dateOfDeath?.isNotEmpty == true)
+                    _buildInfoRow('Date of Death', _capsule!.dateOfDeath!),
+                  if (_capsule!.language?.isNotEmpty == true)
+                    _buildInfoRow('Language', _capsule!.language!),
+                  if (_capsule!.scheduledDate != null)
+                    _buildInfoRow('Scheduled Date',
+                        '${_capsule!.scheduledDate!.day}/${_capsule!.scheduledDate!.month}/${_capsule!.scheduledDate!.year}'),
+                ],
+              ),
             ),
-            child: Column(
-              children: [
-                if (_capsule!.dateOfBirth?.isNotEmpty == true)
-                  _buildInfoRow('Date of Birth', _capsule!.dateOfBirth!),
-                if (_capsule!.dateOfDeath?.isNotEmpty == true)
-                  _buildInfoRow('Date of Death', _capsule!.dateOfDeath!),
-                if (_capsule!.language?.isNotEmpty == true)
-                  _buildInfoRow('Language', _capsule!.language!),
-                if (_capsule!.scheduledDate != null)
-                  _buildInfoRow('Scheduled Date',
-                      '${_capsule!.scheduledDate!.day}/${_capsule!.scheduledDate!.month}/${_capsule!.scheduledDate!.year}'),
-              ],
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -462,34 +388,27 @@ class _CapsulePageState extends State<CapsulePage> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.primaryDark.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Text(
               label,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.blue[700],
+                color: AppColors.primaryDark,
               ),
             ),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[800],
-              ),
-            ),
+            child: Text(value, style: AppTextStyles.body),
           ),
         ],
       ),
@@ -498,23 +417,8 @@ class _CapsulePageState extends State<CapsulePage> {
 
   Widget _buildMessageForm() {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.blue[50]!, Colors.white],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
       child: Form(
         key: _formKey,
         child: Column(
@@ -523,49 +427,24 @@ class _CapsulePageState extends State<CapsulePage> {
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.blue[100],
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
-                  child: Icon(
-                    Icons.edit_note,
-                    color: Colors.blue[700],
-                    size: 20,
-                  ),
+                  child: const Icon(Icons.edit_note_rounded, color: AppColors.primaryDark, size: 20),
                 ),
-                SizedBox(width: 12),
-                Text(
-                  'Share Your Memory',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
-                ),
+                const SizedBox(width: 12),
+                Text('Share Your Memory', style: AppTextStyles.h3),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextFormField(
               controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Your Name *',
-                hintText: 'Enter your full name',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.blue[400]!, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                prefixIcon: Icon(Icons.person, color: Colors.grey[600]),
+              decoration: AppDecorations.inputDecoration(
+                label: 'Your Name *',
+                hint: 'Enter your full name',
+                prefixIcon: Icons.person_outline_rounded,
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -574,90 +453,66 @@ class _CapsulePageState extends State<CapsulePage> {
                 return null;
               },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _messageController,
-              decoration: InputDecoration(
-                labelText: 'Your Message (Optional)',
-                hintText: 'Share your memories, thoughts, or condolences...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.blue[400]!, width: 2),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                alignLabelWithHint: true,
-              ),
+              decoration: AppDecorations.inputDecoration(
+                label: 'Your Message (Optional)',
+                hint: 'Share your memories, thoughts, or condolences...',
+              ).copyWith(alignLabelWithHint: true),
               maxLines: 4,
             ),
-            SizedBox(height: 20),
-            Text(
-              'Or share media:',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-            SizedBox(height: 12),
+            const SizedBox(height: 20),
+            Text('Or share media:', style: AppTextStyles.label),
+            const SizedBox(height: 12),
             LayoutBuilder(
               builder: (context, constraints) {
-                // Use 2 buttons per row on small screens (width < 600)
                 final isSmallScreen = constraints.maxWidth < 600;
 
                 if (isSmallScreen) {
-                  // 2 buttons per row layout
                   return Column(
                     children: [
                       Row(
                         children: [
                           Expanded(
                             child: _buildUploadButton(
-                              icon: Icons.image,
-                              label: 'Upload Image',
-                              color: Colors.green,
+                              icon: Icons.image_rounded,
+                              label: 'Image',
+                              color: AppColors.success,
                               isLoading: _isUploadingImage,
                               onPressed: _uploadImage,
                             ),
                           ),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: _buildUploadButton(
-                              icon: Icons.videocam,
-                              label: 'Upload Video',
-                              color: Colors.red,
+                              icon: Icons.videocam_rounded,
+                              label: 'Video',
+                              color: AppColors.error,
                               isLoading: _isUploadingVideo,
                               onPressed: _uploadVideo,
                             ),
                           ),
                         ],
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
                             child: _buildUploadButton(
-                              icon: Icons.audiotrack,
-                              label: 'Upload Audio',
-                              color: Colors.blue,
+                              icon: Icons.audiotrack_rounded,
+                              label: 'Audio',
+                              color: AppColors.info,
                               isLoading: _isUploadingAudio,
                               onPressed: _uploadAudio,
                             ),
                           ),
-                          SizedBox(width: 12),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: _buildUploadButton(
-                              icon: Icons.mic,
-                              label: 'Record Audio',
-                              color: Colors.orange,
+                              icon: Icons.mic_rounded,
+                              label: 'Record',
+                              color: AppColors.warning,
                               isLoading: _isRecordingAudio,
                               onPressed: _recordAudio,
                             ),
@@ -667,44 +522,43 @@ class _CapsulePageState extends State<CapsulePage> {
                     ],
                   );
                 } else {
-                  // 4 buttons in a single row for larger screens
                   return Row(
                     children: [
                       Expanded(
                         child: _buildUploadButton(
-                          icon: Icons.image,
-                          label: 'Upload Image',
-                          color: Colors.green,
+                          icon: Icons.image_rounded,
+                          label: 'Image',
+                          color: AppColors.success,
                           isLoading: _isUploadingImage,
                           onPressed: _uploadImage,
                         ),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: _buildUploadButton(
-                          icon: Icons.videocam,
-                          label: 'Upload Video',
-                          color: Colors.red,
+                          icon: Icons.videocam_rounded,
+                          label: 'Video',
+                          color: AppColors.error,
                           isLoading: _isUploadingVideo,
                           onPressed: _uploadVideo,
                         ),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: _buildUploadButton(
-                          icon: Icons.audiotrack,
-                          label: 'Upload Audio',
-                          color: Colors.blue,
+                          icon: Icons.audiotrack_rounded,
+                          label: 'Audio',
+                          color: AppColors.info,
                           isLoading: _isUploadingAudio,
                           onPressed: _uploadAudio,
                         ),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: _buildUploadButton(
-                          icon: Icons.mic,
-                          label: 'Record Audio',
-                          color: Colors.orange,
+                          icon: Icons.mic_rounded,
+                          label: 'Record',
+                          color: AppColors.warning,
                           isLoading: _isRecordingAudio,
                           onPressed: _recordAudio,
                         ),
@@ -714,50 +568,28 @@ class _CapsulePageState extends State<CapsulePage> {
                 }
               },
             ),
-            if (_uploadedVideoUrl != null ||
-                _uploadedAudioUrl != null ||
-                _uploadedImageUrl != null) ...[
-              SizedBox(height: 16),
+            if (_uploadedVideoUrl != null || _uploadedAudioUrl != null || _uploadedImageUrl != null) ...[
+              const SizedBox(height: 16),
               _buildUploadedMediaPreview(),
             ],
-            SizedBox(height: 20),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
+              height: 52,
+              child: ElevatedButton.icon(
                 onPressed: _isSubmitting ? null : _submitMessage,
-                child: _isSubmitting
-                    ? SizedBox(
+                icon: _isSubmitting
+                    ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.send, size: 18),
-                          SizedBox(width: 8),
-                          Text(
-                            'Submit Message',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
+                    : const Icon(Icons.send_rounded),
+                label: Text(
+                  _isSubmitting ? 'Submitting...' : 'Submit Message',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
+                style: primaryButtonStyle,
               ),
             ),
           ],
@@ -766,13 +598,62 @@ class _CapsulePageState extends State<CapsulePage> {
     );
   }
 
+  Widget _buildUploadButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isLoading,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      height: 72,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isLoading ? null : onPressed,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Container(
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
+            ),
+            child: isLoading
+                ? Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: color),
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 24, color: color),
+                      const SizedBox(height: 4),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildUploadedMediaPreview() {
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.green[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green[200]!),
+        color: AppColors.success.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,255 +663,91 @@ class _CapsulePageState extends State<CapsulePage> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.green[700],
+              color: AppColors.success,
             ),
           ),
-          SizedBox(height: 8),
-          if (_uploadedVideoUrl != null)
-            Row(
-              children: [
-                Icon(Icons.videocam, size: 16, color: Colors.green[600]),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Video uploaded',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, size: 16),
-                  onPressed: () {
-                    setState(() {
-                      _uploadedVideoUrl = null;
-                    });
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(),
-                ),
-              ],
-            ),
-          if (_uploadedImageUrl != null)
-            Row(
-              children: [
-                Icon(Icons.image, size: 16, color: Colors.green[600]),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Image uploaded',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, size: 16),
-                  onPressed: () {
-                    setState(() {
-                      _uploadedImageUrl = null;
-                    });
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(),
-                ),
-              ],
-            ),
-          if (_uploadedAudioUrl != null)
-            Row(
-              children: [
-                Icon(Icons.audiotrack, size: 16, color: Colors.green[600]),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Audio uploaded',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(Icons.close, size: 16),
-                  onPressed: () {
-                    setState(() {
-                      _uploadedAudioUrl = null;
-                    });
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(),
-                ),
-              ],
-            ),
+          const SizedBox(height: 8),
+          if (_uploadedVideoUrl != null) _buildMediaItem(Icons.videocam_rounded, 'Video uploaded', () {
+            setState(() => _uploadedVideoUrl = null);
+          }),
+          if (_uploadedImageUrl != null) _buildMediaItem(Icons.image_rounded, 'Image uploaded', () {
+            setState(() => _uploadedImageUrl = null);
+          }),
+          if (_uploadedAudioUrl != null) _buildMediaItem(Icons.audiotrack_rounded, 'Audio uploaded', () {
+            setState(() => _uploadedAudioUrl = null);
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildUploadButton({
-    required IconData icon,
-    required String label,
-    required MaterialColor color,
-    required bool isLoading,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      height: 80,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color[50],
-          foregroundColor: color[700],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: color[200]!),
+  Widget _buildMediaItem(IconData icon, String label, VoidCallback onRemove) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: AppColors.success),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 12, color: AppColors.success),
+            ),
           ),
-          elevation: 2,
-        ),
-        child: isLoading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(color[700]!),
-                ),
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 24),
-                  SizedBox(height: 4),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+          InkWell(
+            onTap: onRemove,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(Icons.close_rounded, size: 16, color: AppColors.textSecondary),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildThankYouMessage() {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(32),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.green[50]!, Colors.white],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        color: AppColors.success.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
       ),
+      padding: const EdgeInsets.all(32),
       child: Column(
         children: [
           Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green[100],
+              color: AppColors.success.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.check_circle,
-              size: 48,
-              color: Colors.green[700],
-            ),
+            child: Icon(Icons.check_circle_rounded, size: 48, color: AppColors.success),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Text(
             'Thank You!',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.green[700],
+              color: AppColors.success,
             ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             'Your message has been submitted successfully.',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[700],
-            ),
+            style: AppTextStyles.body,
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(
             'Your memories and thoughts will be cherished.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: AppTextStyles.bodySecondary,
             textAlign: TextAlign.center,
           ),
         ],
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('In Memory'),
-        backgroundColor: Colors.grey[100],
-        foregroundColor: Colors.black87,
-        elevation: 0,
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      SizedBox(height: 16),
-                      Text(
-                        'Error',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        _errorMessage!,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadCapsule,
-                        child: Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildCapsuleInfo(),
-                      SizedBox(height: 16),
-                      _messageSubmitted
-                          ? _buildThankYouMessage()
-                          : _buildMessageForm(),
-                    ],
-                  ),
-                ),
     );
   }
 }

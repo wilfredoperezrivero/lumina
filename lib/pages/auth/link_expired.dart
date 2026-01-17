@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../services/auth_service.dart';
 import '../../router.dart';
+import '../../theme/app_theme.dart';
 
 class LinkExpiredPage extends StatefulWidget {
   final String? email;
@@ -71,10 +72,11 @@ class _LinkExpiredPageState extends State<LinkExpiredPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login Link Expired'),
-        backgroundColor: Colors.orange.shade700,
-        foregroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
+      appBar: buildAppBar(
+        context: context,
+        title: 'Link Expired',
+        showBackButton: false,
       ),
       body: SafeArea(
         child: Center(
@@ -87,81 +89,60 @@ class _LinkExpiredPageState extends State<LinkExpiredPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Icon
-                  Icon(
-                    Icons.link_off,
-                    size: 80,
-                    color: Colors.orange.shade600,
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningLight,
+                        borderRadius: BorderRadius.circular(AppRadius.xl),
+                      ),
+                      child: Icon(
+                        Icons.link_off_rounded,
+                        size: 48,
+                        color: AppColors.warning,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
                   // Title
                   Text(
                     'Login Link Expired',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: AppTextStyles.h2,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // Description
                   Text(
                     'The login link you clicked has expired or has already been used. Login links can only be used once for security reasons.',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.grey.shade700,
-                        ),
+                    style: AppTextStyles.bodySecondary,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 40),
 
                   // Email field
                   TextFormField(
                     controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email Address',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.email),
-                      hintText: 'Enter your email to get a new link',
+                    decoration: AppDecorations.inputDecoration(
+                      label: 'Email Address',
+                      prefixIcon: Icons.email_outlined,
+                      hint: 'Enter your email to get a new link',
                     ),
                     keyboardType: TextInputType.emailAddress,
                     enabled: !_isSending,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
                   // Message
-                  if (_message != null)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _isSuccess ? Colors.green.shade50 : Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: _isSuccess ? Colors.green.shade200 : Colors.red.shade200,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _isSuccess ? Icons.check_circle : Icons.error_outline,
-                            color: _isSuccess ? Colors.green.shade700 : Colors.red.shade700,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _message!,
-                              style: TextStyle(
-                                color: _isSuccess ? Colors.green.shade700 : Colors.red.shade700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (_message != null) const SizedBox(height: 16),
+                  if (_message != null) ...[
+                    buildAlertContainer(message: _message!, isError: !_isSuccess),
+                    const SizedBox(height: 20),
+                  ],
 
                   // Request new link button
                   SizedBox(
-                    height: 48,
+                    height: 52,
                     child: ElevatedButton.icon(
                       onPressed: _isSending ? null : _requestNewLink,
                       icon: _isSending
@@ -173,12 +154,12 @@ class _LinkExpiredPageState extends State<LinkExpiredPage> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Icon(Icons.send),
-                      label: Text(_isSending ? 'Sending...' : 'Send New Login Link'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade600,
-                        foregroundColor: Colors.white,
+                          : const Icon(Icons.send_rounded),
+                      label: Text(
+                        _isSending ? 'Sending...' : 'Send New Login Link',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
+                      style: primaryButtonStyle,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -186,7 +167,10 @@ class _LinkExpiredPageState extends State<LinkExpiredPage> {
                   // Go to login button
                   TextButton(
                     onPressed: () => context.go(AppRoutes.login),
-                    child: const Text('Go to Login Page'),
+                    child: Text(
+                      'Go to Login Page',
+                      style: TextStyle(color: AppColors.accent),
+                    ),
                   ),
                 ],
               ),

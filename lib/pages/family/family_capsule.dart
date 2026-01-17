@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/capsule.dart';
 import '../../services/capsule_service.dart';
+import '../../theme/app_theme.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -35,21 +36,17 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
-      // Get capsule assigned to this family user
       final capsules = await CapsuleService.getCapsules();
-      final familyCapsule =
-          capsules.where((c) => c.familyId == user.id).firstOrNull;
+      final familyCapsule = capsules.where((c) => c.familyId == user.id).firstOrNull;
 
       if (familyCapsule == null) {
         setState(() {
           _isLoading = false;
-          _errorMessage =
-              'Welcome! You have successfully registered. However, no capsule has been assigned to you yet. Please contact the capsule administrator to get access to your family capsule.';
+          _errorMessage = 'Welcome! You have successfully registered. However, no capsule has been assigned to you yet. Please contact the capsule administrator to get access to your family capsule.';
         });
         return;
       }
 
-      // Generate public URL dynamically
       final currentUrl = Uri.base.toString().replaceAll('/family/capsule', '');
       _publicUrl = '$currentUrl/capsule/${familyCapsule.id}';
 
@@ -68,56 +65,41 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
   Future<void> _closeCapsuleAndGenerateVideo() async {
     if (_capsule == null) return;
 
-    // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Close Capsule'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        title: Text('Close Capsule', style: AppTextStyles.h3),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Are you sure you want to close this capsule?',
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 16),
+            Text('Are you sure you want to close this capsule?', style: AppTextStyles.body),
+            const SizedBox(height: 16),
             Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.orange[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange[200]!),
+                color: AppColors.warningLight,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.warning, color: Colors.orange[700], size: 20),
-                      SizedBox(width: 8),
+                      Icon(Icons.warning_rounded, color: AppColors.warning, size: 20),
+                      const SizedBox(width: 8),
                       Text(
                         'This action is irreversible',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange[700],
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.warning),
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    '• The capsule will be permanently closed',
-                    style: TextStyle(fontSize: 14, color: Colors.orange[700]),
-                  ),
-                  Text(
-                    '• No new messages can be added',
-                    style: TextStyle(fontSize: 14, color: Colors.orange[700]),
-                  ),
-                  Text(
-                    '• Video generation will begin automatically',
-                    style: TextStyle(fontSize: 14, color: Colors.orange[700]),
-                  ),
+                  const SizedBox(height: 12),
+                  _buildWarningItem('The capsule will be permanently closed'),
+                  _buildWarningItem('No new messages can be added'),
+                  _buildWarningItem('Video generation will begin automatically'),
                 ],
               ),
             ),
@@ -126,68 +108,65 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
-            child: Text('Close Capsule'),
+            child: const Text('Close Capsule'),
           ),
         ],
       ),
     );
 
-    if (confirmed != true) {
-      return; // User cancelled
-    }
+    if (confirmed != true) return;
 
-    setState(() {
-      _isGeneratingVideo = true;
-    });
+    setState(() => _isGeneratingVideo = true);
 
     try {
-      // Call the new method that closes capsule and adds job to queue
       await CapsuleService.closeCapsuleAndGenerateVideo(_capsule!.id);
-
-      // Reload capsule to get updated status
       await _loadCapsule();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Capsule closed and video generation started!'),
-          backgroundColor: Colors.green,
+          content: const Text('Capsule closed and video generation started!'),
+          backgroundColor: AppColors.success,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              'Failed to close capsule and generate video: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          content: Text('Failed to close capsule: ${e.toString()}'),
+          backgroundColor: AppColors.error,
         ),
       );
     } finally {
-      setState(() {
-        _isGeneratingVideo = false;
-      });
+      setState(() => _isGeneratingVideo = false);
     }
+  }
+
+  Widget _buildWarningItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('• ', style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.w600)),
+          Expanded(child: Text(text, style: TextStyle(color: AppColors.warning, fontSize: 14))),
+        ],
+      ),
+    );
   }
 
   Future<void> _openUrl(String url) async {
     if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not open URL'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: const Text('Could not open URL'), backgroundColor: AppColors.error),
       );
     }
   }
@@ -196,216 +175,9 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
     await Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('URL copied to clipboard'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Widget _buildCapsuleInfo() {
-    if (_capsule == null) return Container();
-
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Capsule Information',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            SizedBox(height: 16),
-            _buildInfoRow('Name', _capsule!.name ?? 'Not specified'),
-            _buildInfoRow('Status', _capsule!.status ?? 'Unknown'),
-            if (_capsule!.dateOfBirth?.isNotEmpty == true)
-              _buildInfoRow('Date of Birth', _capsule!.dateOfBirth!),
-            if (_capsule!.dateOfDeath?.isNotEmpty == true)
-              _buildInfoRow('Date of Death', _capsule!.dateOfDeath!),
-            if (_capsule!.language?.isNotEmpty == true)
-              _buildInfoRow('Language', _capsule!.language!),
-            if (_capsule!.scheduledDate != null)
-              _buildInfoRow('Scheduled Date',
-                  '${_capsule!.scheduledDate!.day}/${_capsule!.scheduledDate!.month}/${_capsule!.scheduledDate!.year}'),
-            if (_capsule!.expiresAt != null)
-              _buildInfoRow('Expires',
-                  '${_capsule!.expiresAt!.day}/${_capsule!.expiresAt!.month}/${_capsule!.expiresAt!.year}'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQRCode() {
-    if (_publicUrl == null) return Container();
-
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'QR Code',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            SizedBox(height: 16),
-            Center(
-              child: QrImageView(
-                data: _publicUrl!,
-                version: QrVersions.auto,
-                size: 200.0,
-                backgroundColor: Colors.white,
-              ),
-            ),
-            SizedBox(height: 16),
-            Center(
-              child: Text(
-                'Scan to access capsule',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
-              ),
-            ),
-            SizedBox(height: 16),
-            // Public URL with copy button
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _openUrl(_publicUrl!),
-                      child: Text(
-                        _publicUrl!,
-                        style: TextStyle(
-                          color: Colors.blue[600],
-                          decoration: TextDecoration.underline,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => _copyToClipboard(_publicUrl!),
-                    icon: Icon(Icons.copy, size: 18),
-                    padding: EdgeInsets.zero,
-                    constraints: BoxConstraints(),
-                    tooltip: 'Copy URL',
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActions() {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Actions',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () => context.go('/family/messages'),
-                  icon: Icon(Icons.message),
-                  label: Text('Review Messages'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple.shade600,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-                if (_capsule?.finalVideoUrl != null)
-                  ElevatedButton.icon(
-                    onPressed: () => _openUrl(_capsule!.finalVideoUrl!),
-                    icon: Icon(Icons.play_arrow),
-                    label: Text('Play Video'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade600,
-                      foregroundColor: Colors.white,
-                    ),
-                  )
-                else if (_capsule?.status == 'active' ||
-                    _capsule?.status == 'draft')
-                  ElevatedButton.icon(
-                    onPressed: _isGeneratingVideo
-                        ? null
-                        : _closeCapsuleAndGenerateVideo,
-                    icon: _isGeneratingVideo
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : Icon(Icons.video_library),
-                    label: Text(_isGeneratingVideo
-                        ? 'Generating...'
-                        : 'Close capsule and generate video'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal.shade600,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
+        content: const Text('URL copied to clipboard'),
+        backgroundColor: AppColors.success,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -413,72 +185,309 @@ class _FamilyCapsulePageState extends State<FamilyCapsulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        title: Text('Family Capsule'),
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
-        elevation: 2,
+        backgroundColor: AppColors.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text('Family Capsule', style: AppTextStyles.h3.copyWith(fontSize: 18)),
         actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              await Supabase.instance.client.auth.signOut();
-              if (context.mounted) {
-                context.go('/login');
-              }
-            },
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.logout_rounded, color: AppColors.accent),
+              onPressed: () async {
+                await Supabase.instance.client.auth.signOut();
+                if (context.mounted) context.go('/login');
+              },
+              tooltip: 'Sign out',
+            ),
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: AppColors.border, height: 1),
+        ),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDark))
+          : _errorMessage != null
+              ? _buildErrorState()
+              : _buildContent(),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.warningLight,
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+              ),
+              child: Icon(Icons.info_outline_rounded, size: 48, color: AppColors.warning),
+            ),
+            const SizedBox(height: 24),
+            Text('No Capsule Found', style: AppTextStyles.h3),
+            const SizedBox(height: 12),
+            Text(
+              _errorMessage!,
+              style: AppTextStyles.bodySecondary,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loadCapsule,
+              style: primaryButtonStyle,
+              child: const Text('Retry'),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () async {
+                await Supabase.instance.client.auth.signOut();
+                if (context.mounted) context.go('/login');
+              },
+              child: Text('Sign Out', style: TextStyle(color: AppColors.accent)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildCapsuleInfo(),
+          const SizedBox(height: 20),
+          _buildQRCode(),
+          const SizedBox(height: 20),
+          _buildActions(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCapsuleInfo() {
+    if (_capsule == null) return const SizedBox.shrink();
+
+    return Container(
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(Icons.inventory_2_outlined, color: AppColors.primaryDark, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('Capsule Information', style: AppTextStyles.h3),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildInfoRow('Name', _capsule!.name ?? 'Not specified'),
+          _buildInfoRow('Status', _capsule!.status ?? 'Unknown'),
+          if (_capsule!.dateOfBirth?.isNotEmpty == true)
+            _buildInfoRow('Date of Birth', _capsule!.dateOfBirth!),
+          if (_capsule!.dateOfDeath?.isNotEmpty == true)
+            _buildInfoRow('Date of Death', _capsule!.dateOfDeath!),
+          if (_capsule!.language?.isNotEmpty == true)
+            _buildInfoRow('Language', _capsule!.language!),
+          if (_capsule!.scheduledDate != null)
+            _buildInfoRow('Scheduled Date', '${_capsule!.scheduledDate!.day}/${_capsule!.scheduledDate!.month}/${_capsule!.scheduledDate!.year}'),
+          if (_capsule!.expiresAt != null)
+            _buildInfoRow('Expires', '${_capsule!.expiresAt!.day}/${_capsule!.expiresAt!.month}/${_capsule!.expiresAt!.year}'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(label, style: AppTextStyles.label),
+          ),
+          Expanded(
+            child: Text(value, style: AppTextStyles.body),
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error, size: 64, color: Colors.red),
-                      SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        style: TextStyle(fontSize: 16),
-                        textAlign: TextAlign.center,
+    );
+  }
+
+  Widget _buildQRCode() {
+    if (_publicUrl == null) return const SizedBox.shrink();
+
+    return Container(
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(Icons.qr_code_rounded, color: AppColors.primaryDark, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('Share Capsule', style: AppTextStyles.h3),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: QrImageView(
+                data: _publicUrl!,
+                version: QrVersions.auto,
+                size: 180,
+                backgroundColor: Colors.white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text('Scan to access capsule', style: AppTextStyles.caption),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _openUrl(_publicUrl!),
+                    child: Text(
+                      _publicUrl!,
+                      style: TextStyle(
+                        color: AppColors.info,
+                        decoration: TextDecoration.underline,
+                        fontSize: 12,
                       ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadCapsule,
-                        child: Text('Retry'),
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () async {
-                          await Supabase.instance.client.auth.signOut();
-                          if (context.mounted) {
-                            context.go('/login');
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300],
-                          foregroundColor: Colors.grey[700],
-                        ),
-                        child: Text('Sign Out'),
-                      ),
-                    ],
-                  ),
-                )
-              : SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildCapsuleInfo(),
-                      SizedBox(height: 16),
-                      _buildQRCode(),
-                      SizedBox(height: 16),
-                      _buildActions(),
-                    ],
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
+                IconButton(
+                  onPressed: () => _copyToClipboard(_publicUrl!),
+                  icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.accent),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Copy URL',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActions() {
+    return Container(
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(Icons.touch_app_rounded, color: AppColors.primaryDark, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('Actions', style: AppTextStyles.h3),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => context.go('/family/messages'),
+                icon: const Icon(Icons.message_rounded),
+                label: const Text('Review Messages'),
+                style: primaryButtonStyle,
+              ),
+              if (_capsule?.finalVideoUrl != null)
+                ElevatedButton.icon(
+                  onPressed: () => _openUrl(_capsule!.finalVideoUrl!),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Play Video'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+                  ),
+                )
+              else if (_capsule?.status == 'active' || _capsule?.status == 'draft')
+                ElevatedButton.icon(
+                  onPressed: _isGeneratingVideo ? null : _closeCapsuleAndGenerateVideo,
+                  icon: _isGeneratingVideo
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.video_library_rounded),
+                  label: Text(_isGeneratingVideo ? 'Generating...' : 'Close & Generate Video'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

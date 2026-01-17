@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../models/settings.dart';
 import '../../services/settings_service.dart';
 import '../../services/auth_service.dart';
+import '../../theme/app_theme.dart';
 import 'dart:typed_data';
 
 class SettingsPage extends StatefulWidget {
@@ -90,13 +91,16 @@ class _SettingsPageState extends State<SettingsPage> {
         if (file.bytes != null) {
           setState(() {
             _selectedLogoBytes = file.bytes!;
-            _logoUrl = null; // Clear existing logo URL
+            _logoUrl = null;
           });
         }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: ${e.toString()}')),
+        SnackBar(
+          content: Text('Error picking image: ${e.toString()}'),
+          backgroundColor: AppColors.error,
+        ),
       );
     }
   }
@@ -112,14 +116,12 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       String? logoImageUrl = _logoUrl;
 
-      // Upload new logo if selected
       if (_selectedLogoBytes != null) {
         logoImageUrl = await SettingsService.uploadLogoImage(
           _selectedLogoBytes!,
         );
       }
 
-      // Create or update settings
       final settings = Settings(
         adminId: AuthService.currentUser()!.id,
         name: _nameController.text.trim(),
@@ -144,7 +146,10 @@ class _SettingsPageState extends State<SettingsPage> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Settings saved successfully!')),
+        SnackBar(
+          content: const Text('Settings saved successfully!'),
+          backgroundColor: AppColors.success,
+        ),
       );
     } catch (e) {
       setState(() {
@@ -157,262 +162,226 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Settings'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: AppColors.surface,
+      appBar: buildAppBar(context: context, title: 'Settings'),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDark))
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(24),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Profile Information',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            SizedBox(height: 20),
-                            TextFormField(
-                              controller: _nameController,
-                              decoration: InputDecoration(
-                                labelText: 'Business Name',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.business),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter a business name';
-                                }
-                                return null;
-                              },
-                            ),
-                            SizedBox(height: 16),
-                            TextFormField(
-                              controller: _emailController,
-                              decoration: InputDecoration(
-                                labelText: 'Email',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.email),
-                              ),
-                              keyboardType: TextInputType.emailAddress,
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter an email address';
-                                }
-                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                    .hasMatch(value)) {
-                                  return 'Please enter a valid email address';
-                                }
-                                return null;
-                              },
-                            ),
-                            SizedBox(height: 16),
-                            TextFormField(
-                              controller: _phoneController,
-                              decoration: InputDecoration(
-                                labelText: 'Phone Number',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.phone),
-                              ),
-                              keyboardType: TextInputType.phone,
-                            ),
-                            SizedBox(height: 16),
-                            TextFormField(
-                              controller: _contactNameController,
-                              decoration: InputDecoration(
-                                labelText: 'Contact Name',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.person),
-                              ),
-                            ),
-                            SizedBox(height: 16),
-                            TextFormField(
-                              controller: _addressController,
-                              decoration: InputDecoration(
-                                labelText: 'Address',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.location_on),
-                              ),
-                              maxLines: 3,
-                            ),
-                            SizedBox(height: 16),
-                            DropdownButtonFormField<String>(
-                              value: _selectedLanguage,
-                              decoration: InputDecoration(
-                                labelText: 'Language',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.language),
-                              ),
-                              items: _languages.map((String language) {
-                                return DropdownMenuItem<String>(
-                                  value: language,
-                                  child: Text(language),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  _selectedLanguage = newValue;
-                                });
-                              },
-                            ),
-                          ],
+                    // Profile Information Card
+                    _buildSectionCard(
+                      title: 'Profile Information',
+                      icon: Icons.person_outline_rounded,
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: AppDecorations.inputDecoration(
+                            label: 'Business Name',
+                            prefixIcon: Icons.business_rounded,
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter a business name';
+                            }
+                            return null;
+                          },
                         ),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Logo',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            SizedBox(height: 20),
-                            Center(
-                              child: Column(
-                                children: [
-                                  if (_logoUrl != null ||
-                                      _selectedLogoBytes != null)
-                                    Container(
-                                      width: 200,
-                                      height: 200,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                            color: Colors.grey.shade300),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: _selectedLogoBytes != null
-                                            ? Image.memory(
-                                                _selectedLogoBytes!,
-                                                fit: BoxFit.contain,
-                                              )
-                                            : Image.network(
-                                                _logoUrl!,
-                                                fit: BoxFit.contain,
-                                                errorBuilder: (context, error,
-                                                    stackTrace) {
-                                                  return Icon(
-                                                    Icons.image_not_supported,
-                                                    size: 64,
-                                                    color: Colors.grey,
-                                                  );
-                                                },
-                                              ),
-                                      ),
-                                    ),
-                                  SizedBox(height: 16),
-                                  ElevatedButton.icon(
-                                    onPressed: _pickLogo,
-                                    icon: Icon(Icons.upload),
-                                    label: Text('Upload Logo'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue.shade600,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                  if (_logoUrl != null ||
-                                      _selectedLogoBytes != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8.0),
-                                      child: TextButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _logoUrl = null;
-                                            _selectedLogoBytes = null;
-                                          });
-                                        },
-                                        child: Text('Remove Logo'),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.red,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: AppDecorations.inputDecoration(
+                            label: 'Email',
+                            prefixIcon: Icons.email_outlined,
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter an email address';
+                            }
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                              return 'Please enter a valid email address';
+                            }
+                            return null;
+                          },
                         ),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    if (_errorMessage != null)
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          border: Border.all(color: Colors.red.shade200),
-                          borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _phoneController,
+                          decoration: AppDecorations.inputDecoration(
+                            label: 'Phone Number',
+                            prefixIcon: Icons.phone_outlined,
+                          ),
+                          keyboardType: TextInputType.phone,
                         ),
-                        child: Text(
-                          _errorMessage!,
-                          style: TextStyle(color: Colors.red.shade700),
-                        ),
-                      ),
-                    SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _saveSettings,
-                        child: _isSaving
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                    ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text('Saving...'),
-                                ],
-                              )
-                            : Text('Save Settings'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade600,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _contactNameController,
+                          decoration: AppDecorations.inputDecoration(
+                            label: 'Contact Name',
+                            prefixIcon: Icons.person_outline_rounded,
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _addressController,
+                          decoration: AppDecorations.inputDecoration(
+                            label: 'Address',
+                            prefixIcon: Icons.location_on_outlined,
+                          ),
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedLanguage,
+                          decoration: AppDecorations.inputDecoration(
+                            label: 'Language',
+                            prefixIcon: Icons.language_rounded,
+                          ),
+                          items: _languages.map((String language) {
+                            return DropdownMenuItem<String>(
+                              value: language,
+                              child: Text(language),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedLanguage = newValue;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Logo Card
+                    _buildSectionCard(
+                      title: 'Logo',
+                      icon: Icons.image_outlined,
+                      children: [
+                        Center(
+                          child: Column(
+                            children: [
+                              if (_logoUrl != null || _selectedLogoBytes != null)
+                                Container(
+                                  width: 200,
+                                  height: 200,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: AppColors.border),
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
+                                    child: _selectedLogoBytes != null
+                                        ? Image.memory(_selectedLogoBytes!, fit: BoxFit.contain)
+                                        : Image.network(
+                                            _logoUrl!,
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return const Icon(
+                                                Icons.image_not_supported_outlined,
+                                                size: 64,
+                                                color: AppColors.accent,
+                                              );
+                                            },
+                                          ),
+                                  ),
+                                ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                onPressed: _pickLogo,
+                                icon: const Icon(Icons.upload_rounded),
+                                label: const Text('Upload Logo'),
+                                style: primaryButtonStyle,
+                              ),
+                              if (_logoUrl != null || _selectedLogoBytes != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _logoUrl = null;
+                                        _selectedLogoBytes = null;
+                                      });
+                                    },
+                                    child: Text(
+                                      'Remove Logo',
+                                      style: TextStyle(color: AppColors.error),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Error message
+                    if (_errorMessage != null) ...[
+                      buildAlertContainer(message: _errorMessage!, isError: true),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // Save button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveSettings,
+                        style: primaryButtonStyle,
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text(
+                                'Save Settings',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, color: AppColors.primaryDark, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(title, style: AppTextStyles.h3),
+            ],
+          ),
+          const SizedBox(height: 24),
+          ...children,
+        ],
+      ),
     );
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/capsule_service.dart';
 import '../../models/capsule.dart';
+import '../../theme/app_theme.dart';
 
 class EditCapsulePage extends StatefulWidget {
   final Capsule capsule;
@@ -61,180 +62,183 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Edit Capsule'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+      backgroundColor: AppColors.surface,
+      appBar: buildAppBar(
+        context: context,
+        title: 'Edit Capsule',
         actions: [
-          IconButton(
-            icon: Icon(Icons.home),
-            onPressed: () => context.go('/admin/dashboard'),
-            tooltip: 'Go to Dashboard',
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.home_rounded, color: AppColors.accent),
+              onPressed: () => context.go('/admin/dashboard'),
+              tooltip: 'Dashboard',
+            ),
           ),
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDark))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
               child: Form(
                 key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: InputDecoration(
-                          labelText: 'Capsule Name',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.label),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a capsule name';
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16),
-                      // Date of Birth
-                      InkWell(
-                        onTap: () => _selectDateOfBirth(context),
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: 'Date of Birth (Optional)',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.cake),
-                          ),
-                          child: Text(
-                            _dateOfBirthController.text.isNotEmpty
-                                ? _dateOfBirthController.text
-                                : 'Select date of birth',
-                            style: TextStyle(
-                              color: _dateOfBirthController.text.isNotEmpty
-                                  ? Colors.black
-                                  : Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      // Date of Death
-                      InkWell(
-                        onTap: () => _selectDateOfDeath(context),
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: 'Date of Death (Optional)',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.event),
-                          ),
-                          child: Text(
-                            _dateOfDeathController.text.isNotEmpty
-                                ? _dateOfDeathController.text
-                                : 'Select date of death',
-                            style: TextStyle(
-                              color: _dateOfDeathController.text.isNotEmpty
-                                  ? Colors.black
-                                  : Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      // Language Dropdown
-                      DropdownButtonFormField<String>(
-                        value: _selectedLanguage,
-                        decoration: InputDecoration(
-                          labelText: 'Language (Optional)',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.language),
-                        ),
-                        items: _languages.map((String language) {
-                          return DropdownMenuItem<String>(
-                            value: language,
-                            child: Text(language),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            _selectedLanguage = newValue;
-                          });
-                        },
-                        validator: (value) {
-                          // Language is optional, so no validation needed
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 16),
-                      // Scheduled Date
-                      InkWell(
-                        onTap: () => _selectDate(context),
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: 'Scheduled Date (Optional)',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.schedule),
-                          ),
-                          child: Text(
-                            _scheduledDate != null
-                                ? '${_scheduledDate!.day}/${_scheduledDate!.month}/${_scheduledDate!.year}'
-                                : 'Select scheduled date',
-                            style: TextStyle(
-                              color: _scheduledDate != null
-                                  ? Colors.black
-                                  : Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                      if (_errorMessage != null)
-                        Container(
-                          padding: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade100,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            _errorMessage!,
-                            style: TextStyle(color: Colors.red.shade800),
-                          ),
-                        ),
-                      SizedBox(height: 16),
-                      SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: _isSaving ? null : _saveCapsule,
-                          child: _isSaving
-                              ? CircularProgressIndicator(color: Colors.white)
-                              : Text('Save Changes'),
-                        ),
-                      ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildFormSection(),
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 20),
+                      buildAlertContainer(message: _errorMessage!, isError: true),
                     ],
-                  ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveCapsule,
+                        style: primaryButtonStyle,
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text(
+                                'Save Changes',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
     );
   }
 
+  Widget _buildFormSection() {
+    return Container(
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(Icons.edit_rounded, color: AppColors.primaryDark, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text('Capsule Details', style: AppTextStyles.h3),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          TextFormField(
+            controller: _nameController,
+            decoration: AppDecorations.inputDecoration(
+              label: 'Capsule Name',
+              prefixIcon: Icons.label_outline_rounded,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter a capsule name';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          _buildDateField(
+            label: 'Date of Birth (Optional)',
+            icon: Icons.cake_outlined,
+            value: _dateOfBirthController.text,
+            onTap: () => _selectDateOfBirth(context),
+          ),
+          const SizedBox(height: 16),
+
+          _buildDateField(
+            label: 'Date of Death (Optional)',
+            icon: Icons.event_outlined,
+            value: _dateOfDeathController.text,
+            onTap: () => _selectDateOfDeath(context),
+          ),
+          const SizedBox(height: 16),
+
+          DropdownButtonFormField<String>(
+            value: _selectedLanguage,
+            decoration: AppDecorations.inputDecoration(
+              label: 'Language (Optional)',
+              prefixIcon: Icons.language_rounded,
+            ),
+            items: _languages.map((String language) {
+              return DropdownMenuItem<String>(
+                value: language,
+                child: Text(language),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              setState(() => _selectedLanguage = newValue);
+            },
+          ),
+          const SizedBox(height: 16),
+
+          _buildDateField(
+            label: 'Scheduled Date (Optional)',
+            icon: Icons.schedule_rounded,
+            value: _scheduledDate != null
+                ? '${_scheduledDate!.day}/${_scheduledDate!.month}/${_scheduledDate!.year}'
+                : '',
+            onTap: () => _selectDate(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required IconData icon,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InputDecorator(
+        decoration: AppDecorations.inputDecoration(
+          label: label,
+          prefixIcon: icon,
+        ),
+        child: Text(
+          value.isNotEmpty ? value : 'Select date',
+          style: TextStyle(
+            color: value.isNotEmpty ? AppColors.textPrimary : AppColors.textMuted,
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _selectDateOfBirth(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate:
-          DateTime.tryParse(_dateOfBirthController.text) ?? DateTime.now(),
+      initialDate: DateTime.tryParse(_dateOfBirthController.text) ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
     if (picked != null) {
       setState(() {
-        _dateOfBirthController.text =
-            '${picked.day}/${picked.month}/${picked.year}';
+        _dateOfBirthController.text = '${picked.day}/${picked.month}/${picked.year}';
       });
     }
   }
@@ -242,15 +246,13 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
   Future<void> _selectDateOfDeath(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate:
-          DateTime.tryParse(_dateOfDeathController.text) ?? DateTime.now(),
+      initialDate: DateTime.tryParse(_dateOfDeathController.text) ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
     if (picked != null) {
       setState(() {
-        _dateOfDeathController.text =
-            '${picked.day}/${picked.month}/${picked.year}';
+        _dateOfDeathController.text = '${picked.day}/${picked.month}/${picked.year}';
       });
     }
   }
@@ -260,12 +262,10 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
       context: context,
       initialDate: _scheduledDate ?? DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 365 * 10)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
     );
     if (picked != null && picked != _scheduledDate) {
-      setState(() {
-        _scheduledDate = picked;
-      });
+      setState(() => _scheduledDate = picked);
     }
   }
 
@@ -281,20 +281,16 @@ class _EditCapsulePageState extends State<EditCapsulePage> {
       final updatedCapsule = await CapsuleService.updateCapsule(
         capsuleId: _capsule!.id,
         name: _nameController.text,
-        dateOfBirth: _dateOfBirthController.text.isNotEmpty
-            ? _dateOfBirthController.text
-            : null,
-        dateOfDeath: _dateOfDeathController.text.isNotEmpty
-            ? _dateOfDeathController.text
-            : null,
+        dateOfBirth: _dateOfBirthController.text.isNotEmpty ? _dateOfBirthController.text : null,
+        dateOfDeath: _dateOfDeathController.text.isNotEmpty ? _dateOfDeathController.text : null,
         language: _selectedLanguage,
         scheduledDate: _scheduledDate,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Capsule updated successfully!'),
-          backgroundColor: Colors.green,
+          content: const Text('Capsule updated successfully!'),
+          backgroundColor: AppColors.success,
         ),
       );
 

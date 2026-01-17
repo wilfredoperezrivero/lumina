@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/pdf_service.dart';
 import '../../services/settings_service.dart';
 import '../../models/settings.dart';
+import '../../theme/app_theme.dart';
 
 class MarketingPage extends StatefulWidget {
   @override
@@ -62,8 +63,8 @@ class _MarketingPageState extends State<MarketingPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('PDF downloaded successfully!'),
-          backgroundColor: Colors.green,
+          content: const Text('PDF downloaded successfully!'),
+          backgroundColor: AppColors.success,
         ),
       );
     } catch (e) {
@@ -95,8 +96,8 @@ class _MarketingPageState extends State<MarketingPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('PNG downloaded successfully!'),
-          backgroundColor: Colors.green,
+          content: const Text('PNG downloaded successfully!'),
+          backgroundColor: AppColors.success,
         ),
       );
     } catch (e) {
@@ -110,320 +111,208 @@ class _MarketingPageState extends State<MarketingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Marketing Materials'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-      ),
+      backgroundColor: AppColors.surface,
+      appBar: buildAppBar(context: context, title: 'Marketing Materials'),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDark))
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header card
+                  _buildSectionCard(
+                    title: 'Marketing Materials',
+                    icon: Icons.campaign_outlined,
+                    children: [
+                      Text(
+                        'Download marketing materials in different languages and formats.',
+                        style: AppTextStyles.bodySecondary,
+                      ),
+                      const SizedBox(height: 16),
+                      if (_adminSettings?.logoImage != null)
+                        _buildStatusRow(
+                          icon: Icons.check_circle_rounded,
+                          color: AppColors.success,
+                          text: 'Logo will be included: ${_adminSettings?.name ?? 'Your business'}',
+                        )
+                      else
+                        _buildStatusRow(
+                          icon: Icons.warning_rounded,
+                          color: AppColors.warning,
+                          text: 'No logo uploaded. Files will be generated without logo.',
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Download Options
+                  _buildSectionCard(
+                    title: 'Download Options',
+                    icon: Icons.download_rounded,
+                    children: [
+                      Row(
                         children: [
-                          Text(
-                            'Marketing Materials',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Download marketing materials in different languages and formats.',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          if (_adminSettings?.logoImage != null) ...[
-                            SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Icon(Icons.check_circle,
-                                    color: Colors.green, size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Logo will be included: ${_adminSettings?.name ?? 'Your business'}',
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                          Expanded(
+                            child: _buildLanguageCard(
+                              'English',
+                              'Download English materials',
+                              () => _showDownloadOptions('en'),
                             ),
-                          ] else ...[
-                            SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Icon(Icons.warning,
-                                    color: Colors.orange, size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'No logo uploaded. Files will be generated without logo.',
-                                  style: TextStyle(
-                                    color: Colors.orange,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildLanguageCard(
+                              'Español',
+                              'Descargar materiales en español',
+                              () => _showDownloadOptions('es'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Available Files
+                  _buildSectionCard(
+                    title: 'Available Files',
+                    icon: Icons.folder_outlined,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildFileRow(
+                              'Leaflet EN.pdf & Leaflet EN.png',
+                              'English marketing materials',
+                            ),
+                            const SizedBox(height: 16),
+                            _buildFileRow(
+                              'Folleto ES.pdf & Folleto ES.png',
+                              'Spanish marketing materials',
+                            ),
+                            const SizedBox(height: 16),
+                            buildInfoTip(
+                              message: 'Your logo will be automatically added to the top right of each file when downloaded.',
+                              icon: Icons.info_outline_rounded,
                             ),
                           ],
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  SizedBox(height: 20),
-                  Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Download Options',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          SizedBox(height: 20),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildLanguageCard(
-                                  'English',
-                                  'Download English materials',
-                                  Icons.language,
-                                  Colors.blue,
-                                  () => _showDownloadOptions('en'),
-                                ),
-                              ),
-                              SizedBox(width: 16),
-                              Expanded(
-                                child: _buildLanguageCard(
-                                  'Español',
-                                  'Descargar materiales en español',
-                                  Icons.language,
-                                  Colors.green,
-                                  () => _showDownloadOptions('es'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 20),
-                  Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Available Files',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          SizedBox(height: 16),
-                          Container(
-                            padding: EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.picture_as_pdf,
-                                        color: Colors.red, size: 24),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Leaflet EN.pdf & Leaflet EN.png',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                          Text(
-                                            'English marketing materials',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Icon(Icons.picture_as_pdf,
-                                        color: Colors.red, size: 24),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Folleto ES.pdf & Folleto ES.png',
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Spanish marketing materials',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 16),
-                                Container(
-                                  padding: EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.shade50,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border:
-                                        Border.all(color: Colors.blue.shade200),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.info_outline,
-                                          color: Colors.blue.shade700,
-                                          size: 20),
-                                      SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          'Your logo will be automatically added to the top right of each file when downloaded.',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.blue.shade700,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (_errorMessage != null)
-                    Container(
-                      width: double.infinity,
-                      margin: EdgeInsets.only(top: 20),
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        border: Border.all(color: Colors.red.shade200),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _errorMessage!,
-                        style: TextStyle(color: Colors.red.shade700),
-                      ),
-                    ),
+
+                  // Error message
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 20),
+                    buildAlertContainer(message: _errorMessage!, isError: true),
+                  ],
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildLanguageCard(
-    String title,
-    String subtitle,
-    IconData icon,
-    MaterialColor color,
-    VoidCallback onTap,
-  ) {
-    return Card(
-      elevation: 2,
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: AppDecorations.card,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, color: AppColors.primaryDark, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(title, style: AppTextStyles.h3),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusRow({
+    required IconData icon,
+    required Color color,
+    required String text,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(color: color, fontWeight: FontWeight.w500, fontSize: 14),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLanguageCard(String title, String subtitle, VoidCallback onTap) {
+    final isLoading = _isGeneratingPdf || _isGeneratingPng;
+
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
-        onTap: (_isGeneratingPdf || _isGeneratingPng) ? null : onTap,
-        borderRadius: BorderRadius.circular(8),
+        onTap: isLoading ? null : onTap,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         child: Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [color.shade50, color.shade100],
-            ),
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             children: [
-              Icon(
-                icon,
-                size: 32,
-                color: color.shade700,
-              ),
-              SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: color.shade800,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                textAlign: TextAlign.center,
+                child: Icon(
+                  Icons.language_rounded,
+                  size: 28,
+                  color: AppColors.primaryDark,
+                ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 12),
+              Text(title, style: AppTextStyles.subtitle),
+              const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: color.shade600,
-                ),
+                style: AppTextStyles.caption,
                 textAlign: TextAlign.center,
               ),
-              if (_isGeneratingPdf || _isGeneratingPng) ...[
-                SizedBox(height: 8),
-                SizedBox(
+              if (isLoading) ...[
+                const SizedBox(height: 12),
+                const SizedBox(
                   width: 20,
                   height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(color.shade700),
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryDark),
                 ),
               ],
             ],
@@ -433,28 +322,57 @@ class _MarketingPageState extends State<MarketingPage> {
     );
   }
 
+  Widget _buildFileRow(String title, String subtitle) {
+    return Row(
+      children: [
+        Icon(Icons.picture_as_pdf_rounded, color: AppColors.error, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: AppTextStyles.subtitle.copyWith(fontSize: 14)),
+              Text(subtitle, style: AppTextStyles.caption),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   void _showDownloadOptions(String language) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
               language == 'es' ? 'Descargar Materiales' : 'Download Materials',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: AppTextStyles.h3,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
                   child: _buildDownloadOption(
                     'PDF',
-                    Icons.picture_as_pdf,
-                    Colors.red,
+                    Icons.picture_as_pdf_rounded,
+                    AppColors.error,
                     () {
                       Navigator.pop(context);
                       _downloadPdf(language);
@@ -462,12 +380,12 @@ class _MarketingPageState extends State<MarketingPage> {
                     _isGeneratingPdf,
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: _buildDownloadOption(
                     'PNG',
-                    Icons.image,
-                    Colors.blue,
+                    Icons.image_rounded,
+                    AppColors.info,
                     () {
                       Navigator.pop(context);
                       _downloadPng(language);
@@ -477,7 +395,7 @@ class _MarketingPageState extends State<MarketingPage> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -491,42 +409,32 @@ class _MarketingPageState extends State<MarketingPage> {
     VoidCallback onTap,
     bool isLoading,
   ) {
-    return Card(
-      elevation: 2,
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         onTap: isLoading ? null : onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
             color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
           child: Column(
             children: [
-              Icon(
-                icon,
-                size: 32,
-                color: color,
-              ),
-              SizedBox(height: 8),
+              Icon(icon, size: 32, color: color),
+              const SizedBox(height: 8),
               Text(
                 title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: color,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: color),
               ),
               if (isLoading) ...[
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: color),
                 ),
               ],
             ],

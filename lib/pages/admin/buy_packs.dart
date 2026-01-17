@@ -79,14 +79,14 @@ class _BuyPacksPageState extends State<BuyPacksPage> {
       },
       {
         'title': 'Pack of 10 capsules',
-        'description': 'Save 10% over the starter pack — ideal for your first few weeks with Lumina.',
+        'description': 'Save 10% over the starter pack — ideal for your first few weeks with Lumina Memorials.',
         'price': '\$135',
         'capsules': 10,
         'savings': '10%',
       },
       {
         'title': 'Pack of 25 capsules',
-        'description': 'Save 15% and make Lumina a natural part of every farewell you offer.',
+        'description': 'Save 15% and make Lumina Memorials a natural part of every farewell you offer.',
         'price': '\$319',
         'capsules': 25,
         'savings': '15%',
@@ -100,7 +100,7 @@ class _BuyPacksPageState extends State<BuyPacksPage> {
       },
       {
         'title': 'Pack of 100 capsules',
-        'description': 'Save 35%. Boost your margin and bring Lumina to every farewell.',
+        'description': 'Save 35%. Boost your margin and bring Lumina Memorials to every farewell.',
         'price': '\$975',
         'capsules': 100,
         'savings': '35%',
@@ -140,7 +140,7 @@ class _BuyPacksPageState extends State<BuyPacksPage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Get Lumina in packs tailored to your needs — from 5 to 100 capsules. For high volumes or continuous integration, contact us for a custom proposal.',
+                          'Get Lumina Memorials in packs tailored to your needs — from 5 to 100 capsules. For high volumes or continuous integration, contact us for a custom proposal.',
                           style: AppTextStyles.bodySecondary,
                         ),
                       ],

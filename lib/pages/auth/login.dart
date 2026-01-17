@@ -252,7 +252,7 @@ class _LoginPageState extends State<LoginPage> {
 
                     // Title
                     Text(
-                      'Welcome to Lumina',
+                      'Welcome to Lumina Memorials',
                       style: AppTextStyles.h1,
                       textAlign: TextAlign.center,
                     ),

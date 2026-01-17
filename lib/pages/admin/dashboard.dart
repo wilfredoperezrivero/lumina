@@ -45,7 +45,7 @@ class AdminDashboardPage extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              'Lumina',
+              'Lumina Memorials',
               style: TextStyle(
                 color: _textPrimary,
                 fontWeight: FontWeight.w700,
